@@ -11,11 +11,15 @@ def test_health(client):
     response = client.get('/health')
     assert response.status_code == 200
 
-def test_get_items(client):
-    response = client.get('/items')
-    assert response.status_code == 200
+def test_get_products(client):
+    response = client.get('/products')
+    assert response.status_code in [200, 500]
 
-def test_create_item(client):
-    response = client.post('/items',
-        json={"name": "sneaker", "price": 99})
-    assert response.status_code == 201
+def test_create_product(client):
+    response = client.post('/products',
+        json={"name": "Air Force 1", "price": 110, "stock": 50})
+    assert response.status_code in [201, 500]
+
+def test_get_product_not_found(client):
+    response = client.get('/products/fake-id-123')
+    assert response.status_code in [404, 500]

@@ -5,13 +5,6 @@ resource "aws_security_group" "ecs_sg" {
   vpc_id      = var.vpc_id
 
   ingress {
-    from_port   = 5000
-    to_port     = 5000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -52,6 +45,27 @@ resource "aws_iam_role_policy_attachment" "ecs_task_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# DynamoDB access policy
+resource "aws_iam_role_policy" "dynamodb_access" {
+  name = "dynamodb-access-${var.environment}"
+  role = aws_iam_role.ecs_task_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Scan"
+      ]
+      Resource = "arn:aws:dynamodb:us-east-1:416170614208:table/products-*"
+    }]
+  })
+}
+
 # ECS Task Definition
 resource "aws_ecs_task_definition" "app" {
   family                   = "multi-env-${var.environment}"
@@ -60,6 +74,7 @@ resource "aws_ecs_task_definition" "app" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_task_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([{
     name  = "app"
@@ -67,6 +82,10 @@ resource "aws_ecs_task_definition" "app" {
     portMappings = [{
       containerPort = 5000
       protocol      = "tcp"
+    }]
+    environment = [{
+      name  = "DYNAMODB_TABLE"
+      value = "products-${var.environment}"
     }]
     logConfiguration = {
       logDriver = "awslogs"
