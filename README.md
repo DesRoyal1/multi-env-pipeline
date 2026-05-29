@@ -1,22 +1,22 @@
 # Multi-Environment CI/CD Pipeline
 
-A production-grade DevOps project demonstrating a complete CI/CD pipeline with multi-environment deployments on AWS.
+A production-grade DevOps project built in a single day demonstrating 
+a complete CI/CD pipeline with multi-environment deployments, 
+auto-scaling, self-healing, and real-time monitoring on AWS.
 
-## Live Demo
-- **Production:** http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com/health
+## 🌐 Live Demo
+**Status Page:** http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com
 
-## Architecture
-
+## 🏗 Architecture
 Developer pushes code to GitHub
-→ GitHub Actions runs automated tests
+→ GitHub Actions runs automated tests (mocked DynamoDB)
 → Docker image built and pushed to ECR
 → Deploys to DEV automatically
 → Manual approval gate
 → Deploys to STAGING
 → Manual approval gate
 → Deploys to PRODUCTION
-
-## Tech Stack
+## ⚡ Tech Stack
 
 | Technology | Purpose |
 |------------|---------|
@@ -24,85 +24,109 @@ Developer pushes code to GitHub
 | Docker | Container packaging |
 | AWS ECR | Container registry |
 | AWS ECS + Fargate | Serverless container hosting |
+| AWS DynamoDB | Persistent NoSQL database |
 | AWS ALB | Load balancing and traffic routing |
+| AWS Lambda | Self-healing incident response |
 | AWS CloudWatch | Monitoring, dashboards, and alerts |
 | AWS SNS | Alert notifications |
+| AWS Auto Scaling | Automatic container scaling |
 | Terraform | Infrastructure as Code |
 | GitHub Actions | CI/CD pipeline automation |
 
-## Environments
+## 🌍 Environments
 
 Three identical environments managed with Terraform workspaces:
 
-| Environment | Purpose |
-|-------------|---------|
-| dev | Automatic deployments on every push |
-| staging | Manual approval required |
-| production | Manual approval required |
+| Environment | Purpose | Deployment |
+|-------------|---------|------------|
+| dev | Developer testing | Automatic on every push |
+| staging | Pre-production verification | Manual approval required |
+| production | Live user traffic | Manual approval required |
 
-## Infrastructure
+## 📊 Load Test Results
+
+| Metric | 1K Requests | 5K Requests |
+|--------|-------------|-------------|
+| Success Rate | 100% | 100% |
+| Avg Response | 120ms | 222ms |
+| Throughput | 410 req/sec | 445 req/sec |
+| Failures | 0 | 0 |
+
+## 🔧 Infrastructure Per Environment
 
 Each environment contains:
-- ECS Cluster (Fargate)
-- Application Load Balancer
-- CloudWatch Dashboard
-- CPU and task count alarms
-- SNS email alerts
+- ECS Cluster (Fargate) — serverless containers
+- Application Load Balancer — traffic routing
+- DynamoDB Table — persistent product storage
+- Auto Scaling (1-5 containers) — handles traffic spikes
+- CloudWatch Dashboard — CPU and memory monitoring
+- CloudWatch Alarms — CPU high/low triggers
+- Lambda Self-Healing — auto-restarts on failure
+- SNS Email Alerts — instant incident notifications
 
-## API Endpoints
+## 🛡 Self-Healing System
+App goes down
+→ CloudWatch detects zero running tasks
+→ Triggers Lambda automatically
+→ Lambda forces new ECS deployment
+→ Sends email alert
+→ App recovers without human intervention
+## 📈 Auto Scaling
+CPU > 70% for 2 minutes → scales UP by 2 containers
+CPU < 30% for 3 minutes → scales DOWN by 1 container
+Minimum containers      → 1
+Maximum containers      → 5
+## 🔌 API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | / | Live status page |
 | GET | /health | Health check |
-| GET | /items | Get all items |
-| POST | /items | Create an item |
+| GET | /products | List all products |
+| POST | /products | Create a product |
+| GET | /products/:id | Get one product |
+| PUT | /products/:id | Update stock |
+| DELETE | /products/:id | Delete a product |
 
-## CI/CD Pipeline
+## 🚀 CI/CD Pipeline
 
-The GitHub Actions pipeline runs on every push to main:
-
-1. **Test** — runs pytest suite automatically
-2. **Deploy Dev** — builds Docker image, pushes to ECR, deploys to dev
-3. **Deploy Staging** — requires manual approval
-4. **Deploy Production** — requires manual approval
-
-Bad code never reaches production — the pipeline blocks any push that fails tests.
-
-## Infrastructure as Code
-
-All AWS infrastructure is defined in Terraform:
-
-```bash
-# Deploy an environment
-terraform workspace select dev
-terraform apply -var="environment=dev"
-
-# Tear down an environment  
-terraform workspace select dev
-terraform destroy -var="environment=dev"
+```yaml
+Push to main
+  → Test (pytest with mocked DynamoDB)
+    → Deploy Dev (automatic)
+      → Deploy Staging (manual approval)
+        → Deploy Production (manual approval)
 ```
 
-## Project Structure
+Bad code never reaches production.
+The pipeline blocks any push that fails tests.
+
+## 📁 Project Structure
 multi-env-pipeline/
-├── app.py                          # Flask API
+├── app.py                          # Flask REST API
 ├── Dockerfile                      # Container definition
-├── .github/
-│   └── workflows/
-│       └── deploy.yml              # CI/CD pipeline
+├── requirements.txt                # Python dependencies
+├── templates/
+│   └── status.html                 # Live status page
+├── lambda/
+│   └── heal.py                     # Self-healing function
 ├── tests/
-│   └── test_app.py                 # Pytest test suite
+│   └── test_app.py                 # Pytest suite (mocked)
 └── terraform/
-├── main.tf                     # Provider and cluster config
-├── ecs.tf                      # ECS service and task definition
-├── monitoring.tf               # CloudWatch and SNS alerts
+├── main.tf                     # Provider and cluster
+├── ecs.tf                      # ECS service and tasks
+├── dynamo.tf                   # DynamoDB tables
 ├── loadbalancer.tf             # Application load balancer
+├── autoscaling.tf              # Auto scaling policies
+├── monitoring.tf               # CloudWatch and SNS
+├── lambda_healing.tf           # Self-healing Lambda
 └── variables.tf                # Input variables
+## 🔑 What This Demonstrates
 
-## What I Learned
-
-- Infrastructure as Code with Terraform and workspace-based environment management
-- Containerizing applications with Docker and pushing to AWS ECR
-- Building multi-stage CI/CD pipelines with GitHub Actions
-- Deploying containerized workloads on AWS ECS with Fargate
-- Setting up monitoring, alerting, and observability with CloudWatch
-- Implementing approval gates to protect production deployments
+- **IaC** — entire AWS infrastructure defined in Terraform
+- **CI/CD** — automated testing and multi-stage deployments
+- **Containerization** — Docker with ECR registry
+- **Reliability** — auto-scaling and self-healing
+- **Observability** — CloudWatch dashboards and alerts
+- **Security** — least privilege IAM, approval gates
+- **Performance** — 445 req/sec, 100% uptime under load
