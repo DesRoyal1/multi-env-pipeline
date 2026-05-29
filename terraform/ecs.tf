@@ -11,6 +11,20 @@ resource "aws_security_group" "ecs_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -78,4 +92,12 @@ resource "aws_ecs_service" "app" {
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name   = "app"
+    container_port   = 5000
+  }
+
+  depends_on = [aws_lb_listener.app]
 }
