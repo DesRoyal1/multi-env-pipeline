@@ -231,7 +231,7 @@
 
         async function loadProducts() {
             try {
-                const res = await fetch('/products');
+                const res = await fetch(`${BASE}/products`);
                 const data = await res.json();
                 const products = data.products || [];
                 document.getElementById('totalProducts').textContent = products.length;

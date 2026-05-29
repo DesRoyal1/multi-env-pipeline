@@ -1,12 +1,12 @@
 import os
 import uuid
 import boto3
-from flask import Flask, jsonify, request
 from boto3.dynamodb.conditions import Key
 from flask import Flask, jsonify, request, render_template
-
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # DynamoDB setup
 def get_table():
