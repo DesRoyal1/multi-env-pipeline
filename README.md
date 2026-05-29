@@ -1,82 +1,126 @@
 # Multi-Environment CI/CD Pipeline
 
-A production-grade DevOps project built in a single day demonstrating 
-a complete CI/CD pipeline with multi-environment deployments, 
-auto-scaling, self-healing, and real-time monitoring on AWS.
+A production-grade DevOps project demonstrating a complete automated deployment system with self-healing infrastructure, auto-scaling, and real-time monitoring on AWS.
 
-## 🌐 Live Demo
-**Status Page:** http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com
+**Live Demo:** http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com
 
-## 🏗 Architecture
+---
+
+## What This Project Demonstrates
+
+This project solves the core problem every software company faces — how do you ship code updates quickly and safely without breaking things for users?
+
+The answer is a fully automated pipeline that tests every change, deploys through multiple environments with approval gates, monitors itself 24/7, and recovers automatically from failures.
+
+---
+
+## Architecture
 Developer pushes code to GitHub
-→ GitHub Actions runs automated tests (mocked DynamoDB)
+→ GitHub Actions runs automated tests
 → Docker image built and pushed to ECR
 → Deploys to DEV automatically
 → Manual approval gate
 → Deploys to STAGING
 → Manual approval gate
 → Deploys to PRODUCTION
-## ⚡ Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| Python/Flask | REST API application |
-| Docker | Container packaging |
-| AWS ECR | Container registry |
-| AWS ECS + Fargate | Serverless container hosting |
-| AWS DynamoDB | Persistent NoSQL database |
-| AWS ALB | Load balancing and traffic routing |
-| AWS Lambda | Self-healing incident response |
-| AWS CloudWatch | Monitoring, dashboards, and alerts |
-| AWS SNS | Alert notifications |
-| AWS Auto Scaling | Automatic container scaling |
-| Terraform | Infrastructure as Code |
-| GitHub Actions | CI/CD pipeline automation |
+Bad code never reaches production. The pipeline blocks any push that fails tests.
 
-## 🌍 Environments
+---
 
-Three identical environments managed with Terraform workspaces:
+## Tech Stack
 
-| Environment | Purpose | Deployment |
-|-------------|---------|------------|
-| dev | Developer testing | Automatic on every push |
-| staging | Pre-production verification | Manual approval required |
-| production | Live user traffic | Manual approval required |
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Application | Python / Flask | REST API with 6 endpoints |
+| Database | AWS DynamoDB | Persistent NoSQL storage |
+| Containerization | Docker | Consistent environments everywhere |
+| Registry | AWS ECR | Container image storage |
+| Hosting | AWS ECS + Fargate | Serverless container orchestration |
+| Networking | AWS ALB | Load balancing and traffic routing |
+| Scaling | AWS Auto Scaling | 1-5 containers based on CPU |
+| Monitoring | AWS CloudWatch | Dashboards, alarms, logs |
+| Alerting | AWS SNS | Email notifications on incidents |
+| Self-Healing | AWS Lambda | Automatic restart on failure |
+| IaC | Terraform | All infrastructure defined as code |
+| CI/CD | GitHub Actions | Automated test and deploy pipeline |
 
-## 📊 Load Test Results
+---
 
-| Metric | 1K Requests | 5K Requests |
-|--------|-------------|-------------|
-| Success Rate | 100% | 100% |
-| Avg Response | 120ms | 222ms |
-| Throughput | 410 req/sec | 445 req/sec |
-| Failures | 0 | 0 |
+## Three Environments
 
-## 🔧 Infrastructure Per Environment
+Each environment is identical infrastructure, managed independently with Terraform workspaces.
 
-Each environment contains:
-- ECS Cluster (Fargate) — serverless containers
-- Application Load Balancer — traffic routing
-- DynamoDB Table — persistent product storage
-- Auto Scaling (1-5 containers) — handles traffic spikes
-- CloudWatch Dashboard — CPU and memory monitoring
-- CloudWatch Alarms — CPU high/low triggers
-- Lambda Self-Healing — auto-restarts on failure
-- SNS Email Alerts — instant incident notifications
+| Environment | Purpose | Deployment Trigger |
+|-------------|---------|-------------------|
+| Development | Developer testing | Automatic on every push |
+| Staging | Pre-production verification | Manual approval required |
+| Production | Live traffic | Manual approval required |
 
-## 🛡 Self-Healing System
+Each environment has its own:
+- ECS cluster and Fargate service
+- DynamoDB table
+- Application Load Balancer
+- CloudWatch dashboard
+- Auto scaling policies
+- Lambda self-healing function
+- SNS alert topic
+
+---
+
+## CI/CD Pipeline
+
+The GitHub Actions pipeline runs automatically on every push to main:
+
+Test        → pytest suite with mocked DynamoDB (no AWS needed)
+Deploy Dev  → build Docker image, push to ECR, update ECS service
+Deploy Staging → requires manual approval in GitHub
+Deploy Prod    → requires manual approval in GitHub
+
+
+Nothing reaches production without passing tests and two approval gates.
+
+---
+
+## Infrastructure as Code
+
+Every AWS resource is defined in Terraform — nothing was clicked in the console.
+terraform/
+├── main.tf              # Provider config and ECS cluster
+├── ecs.tf               # ECS task definition and service
+├── dynamo.tf            # DynamoDB table
+├── loadbalancer.tf      # Application load balancer
+├── autoscaling.tf       # Auto scaling policies
+├── monitoring.tf        # CloudWatch dashboards and SNS alerts
+└── lambda_healing.tf    # Self-healing Lambda function
+
+Deploy any environment from scratch:
+```bash
+terraform workspace select prod
+terraform apply -var="environment=prod"
+```
+
+---
+
+## Auto Scaling
+CPU > 70% for 2 minutes  →  scale UP by 2 containers
+CPU < 30% for 3 minutes  →  scale DOWN by 1 container
+Minimum                  →  1 container
+Maximum                  →  5 containers
+
+---
+
+## Self-Healing System
 App goes down
-→ CloudWatch detects zero running tasks
+→ CloudWatch detects zero running tasks (within 60 seconds)
 → Triggers Lambda automatically
 → Lambda forces new ECS deployment
-→ Sends email alert
+→ Sends email alert via SNS
 → App recovers without human intervention
-## 📈 Auto Scaling
-CPU > 70% for 2 minutes → scales UP by 2 containers
-CPU < 30% for 3 minutes → scales DOWN by 1 container
-Minimum containers      → 1
-Maximum containers      → 5
-## 🔌 API Endpoints
+
+---
+
+## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -85,48 +129,65 @@ Maximum containers      → 5
 | GET | /products | List all products |
 | POST | /products | Create a product |
 | GET | /products/:id | Get one product |
-| PUT | /products/:id | Update stock |
-| DELETE | /products/:id | Delete a product |
+| PUT | /products/:id | Update stock level |
+| DELETE | /products/:id | Remove a product |
 
-## 🚀 CI/CD Pipeline
+---
 
-```yaml
-Push to main
-  → Test (pytest with mocked DynamoDB)
-    → Deploy Dev (automatic)
-      → Deploy Staging (manual approval)
-        → Deploy Production (manual approval)
-```
+## Load Test Results
 
-Bad code never reaches production.
-The pipeline blocks any push that fails tests.
+Tested with [hey](https://github.com/rakyll/hey) load testing tool:
 
-## 📁 Project Structure
+| Test | Requests | Concurrent | Success Rate | Avg Response | Throughput |
+|------|----------|-----------|-------------|-------------|-----------|
+| Test 1 | 1,000 | 50 | 100% | 120ms | 410 req/sec |
+| Test 2 | 5,000 | 100 | 100% | 222ms | 445 req/sec |
+
+Zero failures across 6,000 total requests.
+
+---
+
+## Project Structure
 multi-env-pipeline/
-├── app.py                          # Flask REST API
-├── Dockerfile                      # Container definition
-├── requirements.txt                # Python dependencies
+├── app.py                         # Flask REST API
+├── Dockerfile                     # Container definition
+├── requirements.txt               # Python dependencies
 ├── templates/
-│   └── status.html                 # Live status page
+│   └── status.html                # Live status and demo page
 ├── lambda/
-│   └── heal.py                     # Self-healing function
+│   └── heal.py                    # Self-healing Lambda function
 ├── tests/
-│   └── test_app.py                 # Pytest suite (mocked)
+│   └── test_app.py                # Pytest suite with DynamoDB mocking
 └── terraform/
-├── main.tf                     # Provider and cluster
-├── ecs.tf                      # ECS service and tasks
-├── dynamo.tf                   # DynamoDB tables
-├── loadbalancer.tf             # Application load balancer
-├── autoscaling.tf              # Auto scaling policies
-├── monitoring.tf               # CloudWatch and SNS
-├── lambda_healing.tf           # Self-healing Lambda
-└── variables.tf                # Input variables
-## 🔑 What This Demonstrates
+├── main.tf
+├── ecs.tf
+├── dynamo.tf
+├── loadbalancer.tf
+├── autoscaling.tf
+├── monitoring.tf
+└── lambda_healing.tf
 
-- **IaC** — entire AWS infrastructure defined in Terraform
-- **CI/CD** — automated testing and multi-stage deployments
-- **Containerization** — Docker with ECR registry
-- **Reliability** — auto-scaling and self-healing
-- **Observability** — CloudWatch dashboards and alerts
-- **Security** — least privilege IAM, approval gates
-- **Performance** — 445 req/sec, 100% uptime under load
+---
+
+## Key Engineering Decisions
+
+**Why Fargate over EC2?**
+No server management. AWS handles patching, scaling the underlying infrastructure, and availability. Pay only for what you use.
+
+**Why DynamoDB over RDS?**
+Serverless, scales automatically, no connection pooling issues with containers, and fits the simple key-value access patterns of product inventory.
+
+**Why mock DynamoDB in tests?**
+Unit tests should test logic, not infrastructure. Mocking makes tests fast, free, and runnable anywhere without AWS credentials. Integration tests would use real AWS in a separate test account.
+
+**Why Terraform workspaces over separate directories?**
+One set of infrastructure code that creates identical environments. Changes to infrastructure apply everywhere consistently — no drift between environments.
+
+---
+
+## Resume Bullet Points
+
+- Architected multi-environment CI/CD pipeline deploying containerized Flask API across dev, staging, and production on AWS ECS Fargate using Terraform IaC and GitHub Actions
+- Implemented auto-scaling policies that scale containers from 1 to 5 under CPU load, reducing cost at idle while maintaining 445 req/sec throughput under load testing
+- Built automated incident response system using CloudWatch alarms, Lambda self-healing, and SNS escalation — achieving automatic recovery without human intervention
+- Provisioned all AWS infrastructure as code using Terraform workspaces, enabling repeatable environment creation and eliminating manual console configuration
