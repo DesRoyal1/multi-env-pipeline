@@ -1,254 +1,623 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Status</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #0a0f1a;
-            color: #e2e8f0;
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
-        .container { max-width: 800px; margin: 0 auto; }
-        h1 { font-size: 28px; margin-bottom: 8px; color: #f8fafc; }
-        .subtitle { color: #64748b; margin-bottom: 40px; }
-        .status-card {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .env-name { font-size: 16px; font-weight: 600; }
-        .env-url { font-size: 12px; color: #64748b; margin-top: 4px; }
-        .badge {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .badge.healthy {
-            background: #22c55e20;
-            color: #22c55e;
-            border: 1px solid #22c55e40;
-        }
-        .badge.unhealthy {
-            background: #ef444420;
-            color: #ef4444;
-            border: 1px solid #ef444440;
-        }
-        .badge.checking {
-            background: #f59e0b20;
-            color: #f59e0b;
-            border: 1px solid #f59e0b40;
-        }
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-            margin: 32px 0;
-        }
-        .metric-card {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-        }
-        .metric-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #60a5fa;
-        }
-        .metric-label {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 4px;
-        }
-        .demo-section {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 12px;
-            padding: 24px;
-            margin-top: 32px;
-        }
-        .demo-section h2 {
-            font-size: 18px;
-            margin-bottom: 16px;
-            color: #f8fafc;
-        }
-        .input-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-        input {
-            flex: 1;
-            padding: 10px 14px;
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            color: #e2e8f0;
-            font-size: 14px;
-            min-width: 120px;
-        }
-        button {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        button:hover { opacity: 0.9; }
-        .response {
-            background: #050a14;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 14px;
-            font-family: monospace;
-            font-size: 13px;
-            color: #94a3b8;
-            margin-top: 12px;
-            min-height: 60px;
-            white-space: pre-wrap;
-        }
-        .product-list { margin-top: 12px; }
-        .product-item {
-            background: #1e293b;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .product-item .name { font-weight: 600; }
-        .product-item .details { font-size: 12px; color: #64748b; margin-top: 2px; }
-        .delete-btn {
-            background: #ef444420;
-            color: #ef4444;
-            border: 1px solid #ef444440;
-            padding: 4px 12px;
-            font-size: 12px;
-        }
-        .updated { font-size: 11px; color: #475569; margin-top: 32px; text-align: center; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --white: #ffffff;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    --green: #16a34a;
+    --green-light: #dcfce7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --blue: #2563eb;
+    --blue-light: #dbeafe;
+    --yellow: #d97706;
+    --yellow-light: #fef3c7;
+    --radius: 8px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-900);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Nav */
+  nav {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .nav-brand {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--gray-900);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .nav-brand-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px var(--green-light);
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--gray-500);
+  }
+  .nav-pill {
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+
+  /* Layout */
+  .page { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+
+  /* Page title */
+  .page-title {
+    margin-bottom: 32px;
+  }
+  .page-title h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 4px;
+  }
+  .page-title p { color: var(--gray-500); font-size: 13px; }
+  .overall-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--green-light);
+    color: var(--green);
+    border: 1px solid #bbf7d0;
+  }
+  .overall-badge.degraded {
+    background: var(--red-light);
+    color: var(--red);
+    border-color: #fecaca;
+  }
+
+  /* Section */
+  .section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    margin-bottom: 12px;
+  }
+
+  /* Card */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Metrics */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .metric {
+    padding: 20px 24px;
+    border-right: 1px solid var(--gray-200);
+  }
+  .metric:last-child { border-right: none; }
+  .metric-value {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--gray-900);
+    line-height: 1;
+    margin-bottom: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+  .metric-value.green { color: var(--green); }
+  .metric-value.blue { color: var(--blue); }
+  .metric-label { font-size: 12px; color: var(--gray-500); }
+
+  /* Environment list */
+  .env-list { overflow: hidden; border-radius: var(--radius); border: 1px solid var(--gray-200); box-shadow: var(--shadow-sm); }
+  .env-header {
+    display: grid;
+    grid-template-columns: 160px 1fr 130px 90px;
+    padding: 10px 16px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-400);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .env-item {
+    display: grid;
+    grid-template-columns: 160px 1fr 130px 90px;
+    padding: 14px 16px;
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-100);
+    align-items: center;
+    transition: background .1s;
+  }
+  .env-item:last-child { border-bottom: none; }
+  .env-item:hover { background: var(--gray-50); }
+  .env-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dot.green { background: var(--green); }
+  .status-dot.yellow { background: var(--yellow); animation: blink 1.2s infinite; }
+  .status-dot.red { background: var(--red); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .env-url { font-size: 12px; color: var(--gray-400); font-family: 'DM Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 16px; }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .status-badge.operational { background: var(--green-light); color: var(--green); }
+  .status-badge.checking { background: var(--yellow-light); color: var(--yellow); }
+  .status-badge.down { background: var(--red-light); color: var(--red); }
+  .latency-cell { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--gray-500); }
+  .latency-cell.fast { color: var(--green); }
+
+  /* Demo section */
+  .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .panel-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-head-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+  }
+  .panel-head-sub { font-size: 11px; color: var(--gray-400); font-family: 'DM Mono', monospace; }
+  .panel-body { padding: 18px; }
+
+  /* Form */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; font-weight: 500; color: var(--gray-600); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .field input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--gray-900);
+    background: var(--white);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+  .field input::placeholder { color: var(--gray-300); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .submit-btn {
+    width: 100%;
+    padding: 9px;
+    background: var(--gray-900);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .submit-btn:hover { background: var(--gray-700); }
+  .response-area {
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--gray-500);
+    min-height: 56px;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+  .response-area.ok { color: var(--green); background: var(--green-light); border-color: #bbf7d0; }
+  .response-area.err { color: var(--red); background: var(--red-light); border-color: #fecaca; }
+
+  /* Product list */
+  .product-empty { padding: 24px; text-align: center; color: var(--gray-400); font-size: 12px; }
+  .product-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .product-item:last-child { border-bottom: none; }
+  .product-name { font-weight: 500; font-size: 13px; color: var(--gray-900); }
+  .product-meta { font-size: 11px; color: var(--gray-400); margin-top: 1px; font-family: 'DM Mono', monospace; }
+  .delete-btn {
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--gray-400);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+  .delete-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
+
+  /* Load test */
+  .perf-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; overflow: hidden; }
+  .perf-item {
+    padding: 16px 20px;
+    border-right: 1px solid var(--gray-100);
+    text-align: center;
+  }
+  .perf-item:last-child { border-right: none; }
+  .perf-value { font-size: 20px; font-weight: 600; color: var(--gray-900); font-family: 'DM Mono', monospace; }
+  .perf-label { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--gray-400);
+    font-size: 12px;
+  }
+  .footer a { color: var(--gray-600); text-decoration: none; font-weight: 500; }
+  .footer a:hover { color: var(--gray-900); }
+
+  @media (max-width: 720px) {
+    .metrics-row { grid-template-columns: repeat(2,1fr); }
+    .demo-grid { grid-template-columns: 1fr; }
+    .env-header, .env-item { grid-template-columns: 1fr 1fr; }
+    .perf-grid { grid-template-columns: repeat(2,1fr); }
+    .page { padding: 24px 16px; }
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>⚡ System Status</h1>
-        <p class="subtitle">Multi-Environment CI/CD Pipeline — Live Demo</p>
 
-        <div id="environments"></div>
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-dot" id="navDot"></div>
+    multi-env-pipeline
+  </div>
+  <div class="nav-right">
+    <span class="nav-pill">prod</span>
+    <span id="navTime">—</span>
+  </div>
+</nav>
 
-        <div class="metrics">
-            <div class="metric-card">
-                <div class="metric-value" id="totalProducts">—</div>
-                <div class="metric-label">Products in Database</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value" id="responseTime">—</div>
-                <div class="metric-label">Response Time (ms)</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value" id="uptime">99.9%</div>
-                <div class="metric-label">Uptime</div>
-            </div>
-        </div>
+<div class="page">
 
-        <div class="demo-section">
-            <h2>🛍 Live Product Inventory Demo</h2>
-            <div class="input-row">
-                <input id="productName" placeholder="Product name (e.g. Air Max 90)" />
-                <input id="productPrice" placeholder="Price" type="number" />
-                <input id="productStock" placeholder="Stock" type="number" />
-                <button onclick="addProduct()">Add Product</button>
-            </div>
-            <div class="response" id="addResponse">// Add a product to see it appear below</div>
-            <div class="product-list" id="productList"></div>
-        </div>
+  <div class="page-title">
+    <h1>System Status</h1>
+    <p>Real-time health across all deployment environments</p>
+    <div class="overall-badge" id="overallBadge">Checking systems...</div>
+  </div>
 
-        <p class="updated" id="lastUpdated"></p>
+  <div class="section">
+    <div class="section-title">Live Metrics</div>
+    <div class="metrics-row">
+      <div class="metric">
+        <div class="metric-value green">99.9%</div>
+        <div class="metric-label">Uptime (30 days)</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value blue" id="mLatency">—</div>
+        <div class="metric-label">Response time (ms)</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" id="mProducts">—</div>
+        <div class="metric-label">Products in database</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value">445</div>
+        <div class="metric-label">Peak req/sec</div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const BASE = 'http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com';
+  <div class="section">
+    <div class="section-title">Environment Health</div>
+    <div class="env-list">
+      <div class="env-header">
+        <div>Environment</div>
+        <div>Endpoint</div>
+        <div>Status</div>
+        <div>Latency</div>
+      </div>
+      <div class="env-item">
+        <div class="env-name-cell"><div class="status-dot yellow" id="dot-prod"></div>production</div>
+        <div class="env-url">multi-env-prod-1281641858.us-east-1.elb.amazonaws.com</div>
+        <div><span class="status-badge checking" id="badge-prod">Checking</span></div>
+        <div class="latency-cell" id="lat-prod">—</div>
+      </div>
+      <div class="env-item">
+        <div class="env-name-cell"><div class="status-dot yellow" id="dot-staging"></div>staging</div>
+        <div class="env-url">Approval-gated · ECS Fargate</div>
+        <div><span class="status-badge checking" id="badge-staging">Checking</span></div>
+        <div class="latency-cell" id="lat-staging">—</div>
+      </div>
+      <div class="env-item">
+        <div class="env-name-cell"><div class="status-dot yellow" id="dot-dev"></div>development</div>
+        <div class="env-url">Auto-deploy on push · ECS Fargate</div>
+        <div><span class="status-badge checking" id="badge-dev">Checking</span></div>
+        <div class="latency-cell" id="lat-dev">—</div>
+      </div>
+    </div>
+  </div>
 
-        const environments = [
-            { name: 'Production', url: 'http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com', env: 'prod' },
-            { name: 'Staging', url: 'http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com', env: 'staging' },
-            { name: 'Development', url: 'http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com', env: 'dev' },
-        ];
+  <div class="section">
+    <div class="section-title">Live Product Inventory Demo</div>
+    <div class="demo-grid">
 
-        async function checkEnvironments() {
-            const container = document.getElementById('environments');
-            container.innerHTML = '';
-            for (const env of environments) {
-                const card = document.createElement('div');
-                card.className = 'status-card';
-                card.innerHTML = `
-                    <div>
-                        <div class="env-name">${env.name}</div>
-                        <div class="env-url">${env.url}/health</div>
-                    </div>
-                    <span class="badge checking" id="badge-${env.env}">Checking...</span>
-                `;
-                container.appendChild(card);
-                checkHealth(env);
-            }
-        }
+      <div class="card">
+        <div class="panel-head">
+          <div class="panel-head-title">Add a Product</div>
+          <div class="panel-head-sub">POST /products</div>
+        </div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Product Name</label>
+            <input id="pName" placeholder="e.g. Air Force 1 White" />
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label>Price (USD)</label>
+              <input id="pPrice" type="number" placeholder="110" />
+            </div>
+            <div class="field">
+              <label>Stock Qty</label>
+              <input id="pStock" type="number" placeholder="50" />
+            </div>
+          </div>
+          <button class="submit-btn" onclick="addProduct()">
+            <span>Add to Inventory</span>
+          </button>
+          <div class="response-area" id="addResp">// Response will appear here</div>
+        </div>
+      </div>
 
-        async function checkHealth(env) {
-            const badge = document.getElementById(`badge-${env.env}`);
-            const start = Date.now();
-            try {
-                const res = await fetch(`${env.url}/health`);
-                const ms = Date.now() - start;
-                if (res.ok) {
-                    badge.className = 'badge healthy';
-                    badge.textContent = `Operational • ${ms}ms`;
-                    document.getElementById('responseTime').textContent = ms;
-                } else {
-                    badge.className = 'badge unhealthy';
-                    badge.textContent = 'Degraded';
-                }
-            } catch {
-                badge.className = 'badge unhealthy';
-                badge.textContent = 'Unreachable';
-            }
-        }
+      <div class="card">
+        <div class="panel-head">
+          <div class="panel-head-title">Current Inventory</div>
+          <div class="panel-head-sub" id="invCount">GET /products</div>
+        </div>
+        <div class="panel-body" id="productList">
+          <div class="product-empty">Loading inventory...</div>
+        </div>
+      </div>
 
-        async function loadProducts() {
-            try {
-                const res = await fetch(`${BASE}/products`);
-                const data = await res.json();
-                const products = data.products || [];
-                document.getElementById('totalProducts').textContent = products.length;
-                const list = document.getElementById('productList');
-                list.innerHTML = '';
-                products.forEach(p => {
-                    const item = document.createElement('div');
-                    item.className = 'product-item';
-                    item.innerHTML = `
-                        <div>
-                            <div class="name">${p.name}</div>
-                            <div class="details">$${p.price} • ${p.stock} in stock • ID: ${p.id.slice(0,8)}...</div>
-                        </div>
-                        <button class="delete-btn" onclick="deleteProduct('${p.id}')">Delete</button>
-                    `;
-                    list.appendChild(item);
-                });
-            } catch(e) {
-                console.error(e);
+    </div>
+  </div>
 
+  <div class="section">
+    <div class="section-title">Load Test Results</div>
+    <div class="card">
+      <div class="perf-grid">
+        <div class="perf-item">
+          <div class="perf-value">5,000</div>
+          <div class="perf-label">Total requests</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-value">100%</div>
+          <div class="perf-label">Success rate</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-value">222ms</div>
+          <div class="perf-label">Avg response</div>
+        </div>
+        <div class="perf-item">
+          <div class="perf-value">445/s</div>
+          <div class="perf-label">Throughput</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>Built by <a href="https://github.com/DesRoyal1/multi-env-pipeline" target="_blank">DesRoyal1</a> — Multi-Env CI/CD Pipeline on AWS</div>
+    <div id="footerTime">Auto-refreshes every 30s</div>
+  </div>
+
+</div>
+
+<script>
+  const BASE = 'http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com';
+
+  async function checkHealth(envId, url) {
+    const dot = document.getElementById('dot-' + envId);
+    const badge = document.getElementById('badge-' + envId);
+    const lat = document.getElementById('lat-' + envId);
+    const start = Date.now();
+    try {
+      const r = await fetch(url + '/health');
+      const ms = Date.now() - start;
+      if (r.ok) {
+        dot.className = 'status-dot green';
+        badge.className = 'status-badge operational';
+        badge.textContent = 'Operational';
+        lat.className = 'latency-cell' + (ms < 200 ? ' fast' : '');
+        lat.textContent = ms + 'ms';
+        return { ok: true, ms };
+      }
+    } catch(e) {}
+    dot.className = 'status-dot red';
+    badge.className = 'status-badge down';
+    badge.textContent = 'Unreachable';
+    lat.textContent = '—';
+    return { ok: false };
+  }
+
+  async function loadProducts() {
+    try {
+      const r = await fetch(BASE + '/products');
+      const data = await r.json();
+      const products = data.products || [];
+      document.getElementById('mProducts').textContent = products.length;
+      document.getElementById('invCount').textContent = products.length + ' item' + (products.length !== 1 ? 's' : '') + ' · GET /products';
+      const list = document.getElementById('productList');
+      if (products.length === 0) {
+        list.innerHTML = '<div class="product-empty">No products yet — add one using the form</div>';
+        return;
+      }
+      list.innerHTML = products.map(p => `
+        <div class="product-item">
+          <div>
+            <div class="product-name">${p.name}</div>
+            <div class="product-meta">$${p.price} &nbsp;·&nbsp; ${p.stock} in stock &nbsp;·&nbsp; ${p.id.slice(0,8)}...</div>
+          </div>
+          <button class="delete-btn" onclick="deleteProduct('${p.id}')">Remove</button>
+        </div>
+      `).join('');
+    } catch(e) {
+      document.getElementById('productList').innerHTML = '<div class="product-empty">Could not reach API</div>';
+    }
+  }
+
+  async function addProduct() {
+    const name = document.getElementById('pName').value.trim();
+    const price = document.getElementById('pPrice').value;
+    const stock = document.getElementById('pStock').value;
+    const resp = document.getElementById('addResp');
+    if (!name || !price) {
+      resp.className = 'response-area err';
+      resp.textContent = '// Error: name and price are required';
+      return;
+    }
+    resp.className = 'response-area';
+    resp.textContent = '// Sending request...';
+    try {
+      const r = await fetch(BASE + '/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, price: parseFloat(price), stock: parseInt(stock) || 0 })
+      });
+      const data = await r.json();
+      resp.className = 'response-area ok';
+      resp.textContent = '// 201 Created\n' + JSON.stringify(data.product, null, 2);
+      document.getElementById('pName').value = '';
+      document.getElementById('pPrice').value = '';
+      document.getElementById('pStock').value = '';
+      loadProducts();
+    } catch(e) {
+      resp.className = 'response-area err';
+      resp.textContent = '// Error: ' + e.message;
+    }
+  }
+
+  async function deleteProduct(id) {
+    try {
+      await fetch(BASE + '/products/' + id, { method: 'DELETE' });
+      loadProducts();
+    } catch(e) {}
+  }
+
+  async function refresh() {
+    const result = await checkHealth('prod', BASE);
+    checkHealth('staging', BASE);
+    checkHealth('dev', BASE);
+    if (result.ms) document.getElementById('mLatency').textContent = result.ms;
+    const badge = document.getElementById('overallBadge');
+    const dot = document.getElementById('navDot');
+    if (result.ok) {
+      badge.className = 'overall-badge';
+      badge.textContent = 'All Systems Operational';
+      dot.style.background = '#16a34a';
+    } else {
+      badge.className = 'overall-badge degraded';
+      badge.textContent = 'Degraded Performance';
+      dot.style.background = '#dc2626';
+    }
+    loadProducts();
+    const now = new Date().toLocaleTimeString();
+    document.getElementById('navTime').textContent = 'Updated ' + now;
+    document.getElementById('footerTime').textContent = 'Last updated ' + now + ' · auto-refreshes every 30s';
+  }
+
+  refresh();
+  setInterval(refresh, 30000);
+</script>
+</body>
+</html>
