@@ -3,6 +3,8 @@ import uuid
 import boto3
 from flask import Flask, jsonify, request
 from boto3.dynamodb.conditions import Key
+from flask import Flask, jsonify, request, render_template
+
 
 app = Flask(__name__)
 
@@ -15,6 +17,10 @@ def get_table():
 @app.route('/health')
 def health():
     return jsonify({"status": "healthy"})
+
+@app.route('/')
+def status_page():
+    return render_template('status.html')
 
 @app.route('/products', methods=['GET'])
 def get_products():
