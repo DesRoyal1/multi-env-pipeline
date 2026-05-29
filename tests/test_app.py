@@ -1,4 +1,6 @@
 import pytest
+import json
+from unittest.mock import patch, MagicMock
 from app import app
 
 @pytest.fixture
@@ -12,14 +14,34 @@ def test_health(client):
     assert response.status_code == 200
 
 def test_get_products(client):
-    response = client.get('/products')
-    assert response.status_code in [200, 500]
+    mock_table = MagicMock()
+    mock_table.scan.return_value = {'Items': []}
+    with patch('app.get_table', return_value=mock_table):
+        response = client.get('/products')
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert 'products' in data
 
 def test_create_product(client):
-    response = client.post('/products',
-        json={"name": "Air Force 1", "price": 110, "stock": 50})
-    assert response.status_code in [201, 500]
+    mock_table = MagicMock()
+    mock_table.put_item.return_value = {}
+    with patch('app.get_table', return_value=mock_table):
+        response = client.post('/products',
+            json={"name": "Air Force 1", "price": 110, "stock": 50})
+        assert response.status_code == 201
+        data = json.loads(response.data)
+        assert data['product']['name'] == 'Air Force 1'
 
 def test_get_product_not_found(client):
-    response = client.get('/products/fake-id-123')
-    assert response.status_code in [404, 500]
+    mock_table = MagicMock()
+    mock_table.get_item.return_value = {}
+    with patch('app.get_table', return_value=mock_table):
+        response = client.get('/products/fake-id-123')
+        assert response.status_code == 404
+
+def test_delete_product(client):
+    mock_table = MagicMock()
+    mock_table.delete_item.return_value = {}
+    with patch('app.get_table', return_value=mock_table):
+        response = client.delete('/products/fake-id-123')
+        assert response.status_code == 200
