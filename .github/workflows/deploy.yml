@@ -20,7 +20,9 @@ jobs:
           pip install flask pytest gunicorn
 
       - name: Run tests
-        run: pytest tests/ -v
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          pytest tests/ -v
 
   deploy-dev:
     needs: test
