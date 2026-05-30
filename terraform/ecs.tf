@@ -46,23 +46,48 @@ resource "aws_iam_role_policy_attachment" "ecs_task_policy" {
 }
 
 # DynamoDB access policy
-resource "aws_iam_role_policy" "dynamodb_access" {
-  name = "dynamodb-access-${var.environment}"
+# App permissions policy
+resource "aws_iam_role_policy" "app_permissions" {
+  name = "app-permissions-${var.environment}"
   role = aws_iam_role.ecs_task_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = [
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem",
-        "dynamodb:Scan"
-      ]
-      Resource = "arn:aws:dynamodb:us-east-1:416170614208:table/products-*"
-    }]
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Scan"
+        ]
+        Resource = "arn:aws:dynamodb:us-east-1:416170614208:table/products-*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:GetMetricStatistics",
+          "cloudwatch:ListMetrics",
+          "logs:GetLogEvents",
+          "logs:DescribeLogStreams",
+          "logs:DescribeLogGroups"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:ListTasks",
+          "ecs:DescribeTasks",
+          "ecs:StopTask",
+          "ecs:UpdateService",
+          "ecs:DescribeServices"
+        ]
+        Resource = "*"
+      }
+    ]
   })
 }
 
