@@ -1,82 +1,61 @@
 import boto3
 import json
 import os
-import urllib.request
 
 def lambda_handler(event, context):
-    environment = os.environ.get('ENVIRONMENT', 'prod')
-    cluster = f'multi-env-{environment}'
-    service = f'multi-env-{environment}'
+    environment = os.environ.get('ENVIRONMENT', 'dev')
     sns_topic = os.environ.get('SNS_TOPIC_ARN')
-    
-    ecs = boto3.client('ecs', region_name='us-east-1')
+    api_function = os.environ.get('API_FUNCTION')
+
+    lambda_client = boto3.client('lambda', region_name='us-east-1')
     sns = boto3.client('sns', region_name='us-east-1')
-    
-    print(f"Incident detected for {environment} environment")
-    
-    # Step 1 — attempt self healing
+
+    print(f"Self-heal triggered for {environment} environment")
+
     try:
-        print("Attempting self-heal: forcing new deployment...")
-        ecs.update_service(
-            cluster=cluster,
-            service=service,
-            forceNewDeployment=True
+        # Test if API Lambda is responding
+        response = lambda_client.invoke(
+            FunctionName=api_function,
+            InvocationType='RequestResponse',
+            Payload=json.dumps({
+                'rawPath': '/health',
+                'requestContext': {'http': {'method': 'GET'}},
+                'headers': {},
+                'rawQueryString': ''
+            })
         )
-        heal_status = "Self-heal initiated: forcing new ECS deployment"
-        healed = True
+        payload = json.loads(response['Payload'].read())
+        status_code = payload.get('statusCode', 500)
+        healed = status_code == 200
+        heal_status = f"Health check returned {status_code}"
     except Exception as e:
-        heal_status = f"Self-heal failed: {str(e)}"
         healed = False
-    
-    # Step 2 — get current service status
-    try:
-        response = ecs.describe_services(
-            cluster=cluster,
-            services=[service]
-        )
-        svc = response['services'][0]
-        running = svc['runningCount']
-        desired = svc['desiredCount']
-        status = svc['status']
-    except Exception as e:
-        running = 0
-        desired = 0
-        status = 'UNKNOWN'
+        heal_status = f"Health check failed: {str(e)}"
 
-    # Step 3 — send alert
     message = f"""
-🚨 INCIDENT DETECTED — {environment.upper()} ENVIRONMENT
+INCIDENT DETECTED — {environment.upper()} ENVIRONMENT
 
-Status: {status}
-Running Tasks: {running}/{desired}
-Heal Attempt: {heal_status}
+Function: {api_function}
+Heal Result: {heal_status}
+Status: {"Healthy" if healed else "Degraded"}
 
-Cluster: {cluster}
-Service: {service}
-Region: us-east-1
-
-{"✅ Self-heal initiated — monitor for recovery" if healed else "❌ Manual intervention required"}
-
-View in AWS Console:
-https://console.aws.amazon.com/ecs/home?region=us-east-1#/clusters/{cluster}/services/{service}
+{"System is responding normally" if healed else "Manual investigation may be required"}
     """
-    
+
     try:
         sns.publish(
             TopicArn=sns_topic,
-            Subject=f'🚨 Incident Alert: {environment.upper()} is DOWN',
+            Subject=f'Incident Alert: {environment.upper()} Lambda',
             Message=message
         )
-        print("Alert sent successfully")
     except Exception as e:
-        print(f"Failed to send alert: {str(e)}")
-    
+        print(f"SNS publish failed: {str(e)}")
+
     return {
         'statusCode': 200,
         'body': json.dumps({
             'environment': environment,
             'healed': healed,
-            'heal_status': heal_status,
-            'running_tasks': running
+            'status': heal_status
         })
     }

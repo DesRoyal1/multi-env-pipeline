@@ -7,3 +7,4 @@ __pycache__/
 .terraform.lock.hcl
 terraform/.terraform/
 .terraform/
+packages/
