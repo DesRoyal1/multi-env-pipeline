@@ -1,4 +1,3 @@
- pip install flask pytest gunicorn boto3 flask-cors
 name: CI/CD Pipeline
 
 on:
@@ -17,14 +16,12 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: |
-          pip install flask pytest gunicorn boto3 flask-cors
+        run: pip install flask pytest gunicorn boto3 flask-cors
 
       - name: Run tests
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)
-export PYTHONPATH=/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages:$(pwd)
-          pytest tests/ -v          pytest tests/ -v
+          pytest tests/ -v
 
   deploy-dev:
     needs: test
@@ -39,27 +36,18 @@ export PYTHONPATH=/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-pa
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Login to ECR
-        run: |
-          aws ecr get-login-password --region us-east-1 | \
-          docker login --username AWS \
-          --password-stdin 416170614208.dkr.ecr.us-east-1.amazonaws.com
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
 
-      - name: Build and push Docker image
-        run: |
-          docker build -t multi-env-pipeline .
-          docker tag multi-env-pipeline:latest \
-            416170614208.dkr.ecr.us-east-1.amazonaws.com/multi-env-pipeline:latest
-          docker push \
-            416170614208.dkr.ecr.us-east-1.amazonaws.com/multi-env-pipeline:latest
+      - name: Install dependencies for build
+        run: pip install flask boto3 flask-cors
 
-      - name: Deploy to dev
+      - name: Deploy dev
         run: |
-          aws ecs update-service \
-            --cluster multi-env-dev \
-            --service multi-env-dev \
-            --force-new-deployment \
-            --region us-east-1
+          cd terraform
+          terraform init
+          terraform workspace select dev
+          terraform apply -var="environment=dev" -auto-approve
 
   deploy-staging:
     needs: deploy-dev
@@ -75,13 +63,18 @@ export PYTHONPATH=/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-pa
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Deploy to staging
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Install dependencies for build
+        run: pip install flask boto3 flask-cors
+
+      - name: Deploy staging
         run: |
-          aws ecs update-service \
-            --cluster multi-env-staging \
-            --service multi-env-staging \
-            --force-new-deployment \
-            --region us-east-1
+          cd terraform
+          terraform init
+          terraform workspace select staging
+          terraform apply -var="environment=staging" -auto-approve
 
   deploy-prod:
     needs: deploy-staging
@@ -97,11 +90,15 @@ export PYTHONPATH=/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-pa
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Deploy to production
-        run: |
-          aws ecs update-service \
-            --cluster multi-env-prod \
-            --service multi-env-prod \
-            --force-new-deployment \
-            --region us-east-1
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
 
+      - name: Install dependencies for build
+        run: pip install flask boto3 flask-cors
+
+      - name: Deploy prod
+        run: |
+          cd terraform
+          terraform init
+          terraform workspace select prod
+          terraform apply -var="environment=prod" -auto-approve
