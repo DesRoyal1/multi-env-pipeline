@@ -1,20 +1,22 @@
-# Zip the application with dependencies
+# Run build script to package dependencies
+resource "null_resource" "build" {
+  triggers = {
+    always_run = timestamp()
+  }
+
+  provisioner "local-exec" {
+    command     = "bash build.sh"
+    working_dir = "${path.module}/../"
+  }
+}
+
+# Zip the built application
 data "archive_file" "app" {
   type        = "zip"
-  source_dir  = "${path.module}/../"
-  excludes    = [
-    "terraform",
-    "venv",
-    ".git",
-    "tests",
-    "__pycache__",
-    "*.pyc",
-    ".github",
-    "lambda/heal.py",
-    "lambda/heal.zip",
-    "app.zip"
-  ]
+  source_dir  = "${path.module}/../build/"
   output_path = "${path.module}/../app.zip"
+
+  depends_on = [null_resource.build]
 }
 
 # IAM role for Lambda
@@ -93,6 +95,8 @@ resource "aws_lambda_function" "api" {
       DYNAMODB_TABLE = "products-${var.environment}"
     }
   }
+
+  depends_on = [data.archive_file.app]
 }
 
 # CloudWatch log group

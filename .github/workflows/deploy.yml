@@ -1,3 +1,4 @@
+ pip install flask pytest gunicorn boto3 flask-cors
 name: CI/CD Pipeline
 
 on:
@@ -22,7 +23,8 @@ jobs:
       - name: Run tests
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)
-          pytest tests/ -v
+export PYTHONPATH=/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages:$(pwd)
+          pytest tests/ -v          pytest tests/ -v
 
   deploy-dev:
     needs: test
