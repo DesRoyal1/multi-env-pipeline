@@ -1,122 +1,125 @@
 # Multi-Environment CI/CD Pipeline
+### Production-grade serverless DevOps project — built in a single day
 
-A production-grade DevOps project demonstrating a complete automated deployment system with self-healing infrastructure, auto-scaling, and real-time monitoring on AWS.
-
-**Live Demo:** http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com
+**Live Demo:** https://q1wkih2prc.execute-api.us-east-1.amazonaws.com
 
 ---
 
-## What This Project Demonstrates
+## What This Is
 
-This project solves the core problem every software company faces — how do you ship code updates quickly and safely without breaking things for users?
+A complete cloud infrastructure project demonstrating end-to-end DevOps engineering — from infrastructure as code to automated deployments to real-time observability. The live dashboard shows every system component working in real time with glass wall transparency.
 
-The answer is a fully automated pipeline that tests every change, deploys through multiple environments with approval gates, monitors itself 24/7, and recovers automatically from failures.
+**Cost: $0/month** — built entirely on AWS free tier using serverless architecture.
+
+---
+
+## Live Glass Wall Dashboard
+
+Visit the live URL to see the system operating in real time:
+
+- **Environment Health** — all 3 environments monitored live
+- **Lambda Metrics** — invocations, duration, error rate from CloudWatch
+- **Live Graphs** — 30-minute rolling charts updating every 20 seconds
+- **DynamoDB Stats** — record count, active table, monthly cost ($0.00)
+- **Log Terminal** — real CloudWatch logs streaming to the browser
+- **Interactive Controls** — buttons that cause real AWS actions
+
+### What Each Button Does
+
+| Button | What Happens in AWS |
+|--------|-------------------|
+| Fire Test Request | Real HTTP request hits API Gateway → Lambda invokes → appears in log terminal |
+| Write Test Record | Lambda writes to DynamoDB → record count increments → log entry appears |
+| Stress Test (100 req) | 100 real requests fire → invocations spike on graph → cost: $0.00002 |
+| Inject Error | CloudWatch error metric injected → error graph spikes → proves monitoring works |
 
 ---
 
 ## Architecture
-Developer pushes code to GitHub
-→ GitHub Actions runs automated tests
-→ Docker image built and pushed to ECR
+GitHub push
+→ GitHub Actions runs pytest
+→ Terraform packages Lambda + dependencies
 → Deploys to DEV automatically
 → Manual approval gate
 → Deploys to STAGING
 → Manual approval gate
 → Deploys to PRODUCTION
-
-Bad code never reaches production. The pipeline blocks any push that fails tests.
+→ API Gateway routes traffic
+→ Lambda handles requests
+→ DynamoDB stores data
+→ CloudWatch monitors everything
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Application | Python / Flask | REST API with 6 endpoints |
-| Database | AWS DynamoDB | Persistent NoSQL storage |
-| Containerization | Docker | Consistent environments everywhere |
-| Registry | AWS ECR | Container image storage |
-| Hosting | AWS ECS + Fargate | Serverless container orchestration |
-| Networking | AWS ALB | Load balancing and traffic routing |
-| Scaling | AWS Auto Scaling | 1-5 containers based on CPU |
-| Monitoring | AWS CloudWatch | Dashboards, alarms, logs |
-| Alerting | AWS SNS | Email notifications on incidents |
-| Self-Healing | AWS Lambda | Automatic restart on failure |
-| IaC | Terraform | All infrastructure defined as code |
-| CI/CD | GitHub Actions | Automated test and deploy pipeline |
+| Technology | Purpose | Cost |
+|-----------|---------|------|
+| AWS Lambda | Serverless API hosting | FREE (1M req/month) |
+| AWS API Gateway | Public HTTPS endpoint | FREE (1M calls/month) |
+| AWS DynamoDB | Persistent NoSQL database | FREE (25GB forever) |
+| AWS CloudWatch | Metrics, logs, alarms | FREE (5GB/month) |
+| AWS SNS | Incident alerts | FREE (1M notifications) |
+| Terraform | Infrastructure as Code | FREE |
+| GitHub Actions | CI/CD pipeline | FREE (2000 min/month) |
+| Python / Flask | REST API application | FREE |
+
+**Total monthly cost: $0.00**
 
 ---
 
 ## Three Environments
 
-Each environment is identical infrastructure, managed independently with Terraform workspaces.
+Managed with Terraform workspaces — one codebase, three isolated deployments.
 
-| Environment | Purpose | Deployment Trigger |
-|-------------|---------|-------------------|
-| Development | Developer testing | Automatic on every push |
-| Staging | Pre-production verification | Manual approval required |
-| Production | Live traffic | Manual approval required |
-
-Each environment has its own:
-- ECS cluster and Fargate service
-- DynamoDB table
-- Application Load Balancer
-- CloudWatch dashboard
-- Auto scaling policies
-- Lambda self-healing function
-- SNS alert topic
+| Environment | URL | Deployment |
+|-------------|-----|-----------|
+| Development | Auto-deployed on every push | Immediate |
+| Staging | Approval-gated | Manual approval required |
+| Production | Approval-gated | Manual approval required |
 
 ---
 
 ## CI/CD Pipeline
 
-The GitHub Actions pipeline runs automatically on every push to main:
+Every push to main triggers the full pipeline:
 
-Test        → pytest suite with mocked DynamoDB (no AWS needed)
-Deploy Dev  → build Docker image, push to ECR, update ECS service
-Deploy Staging → requires manual approval in GitHub
-Deploy Prod    → requires manual approval in GitHub
+Test    — pytest with mocked AWS (no credentials needed)
+Dev     — Terraform packages and deploys Lambda automatically
+Staging — requires manual approval in GitHub
+Prod    — requires manual approval in GitHub
 
 
-Nothing reaches production without passing tests and two approval gates.
+18+ documented pipeline runs visible in GitHub Actions.
+
+---
+
+## Reliability System
+CloudWatch monitors Lambda error rate
+→ Errors spike above threshold
+→ Alarm triggers healing Lambda
+→ Healing Lambda health-checks the API
+→ SNS sends email alert
+→ System recovers automatically
 
 ---
 
 ## Infrastructure as Code
 
-Every AWS resource is defined in Terraform — nothing was clicked in the console.
+Every AWS resource defined in Terraform — nothing clicked in the console.
 terraform/
-├── main.tf              # Provider config and ECS cluster
-├── ecs.tf               # ECS task definition and service
-├── dynamo.tf            # DynamoDB table
-├── loadbalancer.tf      # Application load balancer
-├── autoscaling.tf       # Auto scaling policies
-├── monitoring.tf        # CloudWatch dashboards and SNS alerts
-└── lambda_healing.tf    # Self-healing Lambda function
+├── main.tf            # Provider config
+├── lambda.tf          # Lambda functions and IAM
+├── apigateway.tf      # API Gateway routes
+├── dynamo.tf          # DynamoDB tables
+├── monitoring.tf      # CloudWatch alarms and SNS
+└── lambda_healing.tf  # Self-healing system
 
-Deploy any environment from scratch:
+Rebuild entire infrastructure from scratch:
 ```bash
 terraform workspace select prod
-terraform apply -var="environment=prod"
+terraform apply -var="environment=prod" -auto-approve
 ```
-
----
-
-## Auto Scaling
-CPU > 70% for 2 minutes  →  scale UP by 2 containers
-CPU < 30% for 3 minutes  →  scale DOWN by 1 container
-Minimum                  →  1 container
-Maximum                  →  5 containers
-
----
-
-## Self-Healing System
-App goes down
-→ CloudWatch detects zero running tasks (within 60 seconds)
-→ Triggers Lambda automatically
-→ Lambda forces new ECS deployment
-→ Sends email alert via SNS
-→ App recovers without human intervention
 
 ---
 
@@ -124,70 +127,86 @@ App goes down
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | / | Live status page |
+| GET | / | Glass wall dashboard |
 | GET | /health | Health check |
-| GET | /products | List all products |
-| POST | /products | Create a product |
-| GET | /products/:id | Get one product |
-| PUT | /products/:id | Update stock level |
-| DELETE | /products/:id | Remove a product |
+| GET | /products | List inventory |
+| POST | /products | Create item |
+| DELETE | /products/:id | Remove item |
+| GET | /api/metrics | Live Lambda metrics |
+| GET | /api/logs | CloudWatch log stream |
+| GET | /api/db | DynamoDB stats |
+| POST | /api/test-transaction | Rate-limited write demo |
+| POST | /api/loadtest | Rate-limited stress test |
+| POST | /api/trigger-error | Rate-limited error injection |
+
+---
+
+## Security
+
+- All interactive endpoints rate-limited per IP
+- Stress test: once per 2 minutes
+- Write test: once per 30 seconds  
+- Error injection: once per 60 seconds
+- HTTPS enforced via API Gateway
+- IAM least-privilege policies on all Lambda functions
 
 ---
 
 ## Load Test Results
 
-Tested with [hey](https://github.com/rakyll/hey) load testing tool:
-
-| Test | Requests | Concurrent | Success Rate | Avg Response | Throughput |
-|------|----------|-----------|-------------|-------------|-----------|
-| Test 1 | 1,000 | 50 | 100% | 120ms | 410 req/sec |
-| Test 2 | 5,000 | 100 | 100% | 222ms | 445 req/sec |
-
-Zero failures across 6,000 total requests.
+| Metric | Result |
+|--------|--------|
+| Total requests | 5,000 |
+| Success rate | 100% |
+| Average response | 222ms |
+| Peak throughput | 445 req/sec |
+| Cost for 5,000 requests | $0.001 |
 
 ---
 
 ## Project Structure
 multi-env-pipeline/
-├── app.py                         # Flask REST API
-├── Dockerfile                     # Container definition
-├── requirements.txt               # Python dependencies
+├── app.py                    # Flask REST API + glass wall endpoints
+├── lambda_handler.py         # API Gateway → Flask adapter
+├── build.sh                  # Packages dependencies for Lambda
+├── Dockerfile                # Local development container
+├── requirements.txt          # Python dependencies
 ├── templates/
-│   └── status.html                # Live status and demo page
+│   └── status.html           # Glass wall dashboard
 ├── lambda/
-│   └── heal.py                    # Self-healing Lambda function
+│   └── heal.py               # Self-healing Lambda function
 ├── tests/
-│   └── test_app.py                # Pytest suite with DynamoDB mocking
+│   └── test_app.py           # pytest suite with mocked AWS
 └── terraform/
 ├── main.tf
-├── ecs.tf
+├── lambda.tf
+├── apigateway.tf
 ├── dynamo.tf
-├── loadbalancer.tf
-├── autoscaling.tf
 ├── monitoring.tf
 └── lambda_healing.tf
 
 ---
 
-## Key Engineering Decisions
+## Engineering Decisions
 
-**Why Fargate over EC2?**
-No server management. AWS handles patching, scaling the underlying infrastructure, and availability. Pay only for what you use.
+**Why Lambda over ECS?**
+Serverless eliminates idle compute cost. ECS costs ~$40/month running 24/7. Lambda costs $0 at portfolio traffic levels. For this workload serverless is the correct architectural choice.
 
-**Why DynamoDB over RDS?**
-Serverless, scales automatically, no connection pooling issues with containers, and fits the simple key-value access patterns of product inventory.
+**Why Terraform workspaces?**
+One set of infrastructure code creates three identical isolated environments. Changes propagate consistently — no environment drift.
 
-**Why mock DynamoDB in tests?**
-Unit tests should test logic, not infrastructure. Mocking makes tests fast, free, and runnable anywhere without AWS credentials. Integration tests would use real AWS in a separate test account.
+**Why mock AWS in tests?**
+Unit tests validate logic not infrastructure. Mocking makes tests fast, free, and runnable without AWS credentials. The pipeline tests run in under 15 seconds.
 
-**Why Terraform workspaces over separate directories?**
-One set of infrastructure code that creates identical environments. Changes to infrastructure apply everywhere consistently — no drift between environments.
+**Why rate limit public buttons?**
+The dashboard URL appears on a public resume. Rate limiting prevents abuse while keeping the demo interactive and safe.
 
 ---
 
-## Resume Bullet Points
+## Resume Bullets
 
-- Architected multi-environment CI/CD pipeline deploying containerized Flask API across dev, staging, and production on AWS ECS Fargate using Terraform IaC and GitHub Actions
-- Implemented auto-scaling policies that scale containers from 1 to 5 under CPU load, reducing cost at idle while maintaining 445 req/sec throughput under load testing
-- Built automated incident response system using CloudWatch alarms, Lambda self-healing, and SNS escalation — achieving automatic recovery without human intervention
-- Provisioned all AWS infrastructure as code using Terraform workspaces, enabling repeatable environment creation and eliminating manual console configuration
+- Architected serverless REST API using AWS Lambda and API Gateway across dev, staging, and production environments — achieving zero infrastructure cost through serverless design
+- Provisioned all AWS infrastructure as code using Terraform workspaces enabling repeatable isolated environment deployments from a single configuration
+- Built multi-stage CI/CD pipeline with GitHub Actions featuring automated pytest, Terraform deployments, and approval-gated production releases
+- Implemented automated incident response using CloudWatch alarms and Lambda self-healing achieving automatic recovery without human intervention
+- Built real-time operations dashboard pulling live metrics from CloudWatch, DynamoDB, and API Gateway — demonstrating end-to-end system observability
