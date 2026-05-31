@@ -296,7 +296,7 @@ body {
 <div class="topbar">
   <div class="brand">
     <div class="brand-dot" id="brandDot"></div>
-    multi-env-pipeline / operations
+    multi-env-pipeline / operations</div><button onclick="refresh()" style="background:transparent;border:1px solid #30363d;color:#7d8590;padding:3px 10px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:10px;cursor:pointer;margin-left:8px">↺ refresh</button><div style="display:none">
   </div>
   <div class="topbar-right">
     <div class="live-badge"><div class="live-dot"></div>LIVE</div>
@@ -683,8 +683,8 @@ async function triggerError() {
 
 initCharts();
 refresh();
-setInterval(refresh, 20000);
-setInterval(fetchLogs, 8000);
+setInterval(refresh, 300000);
+setInterval(fetchLogs, 120000);
 </script>
 </body>
 </html>
