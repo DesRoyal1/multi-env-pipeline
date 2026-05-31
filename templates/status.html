@@ -3,621 +3,662 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pipeline Status</title>
+<title>Pipeline Operations Center</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --white: #ffffff;
-    --gray-50: #f9fafb;
-    --gray-100: #f3f4f6;
-    --gray-200: #e5e7eb;
-    --gray-300: #d1d5db;
-    --gray-400: #9ca3af;
-    --gray-500: #6b7280;
-    --gray-600: #4b5563;
-    --gray-700: #374151;
-    --gray-900: #111827;
-    --green: #16a34a;
-    --green-light: #dcfce7;
-    --red: #dc2626;
-    --red-light: #fee2e2;
-    --blue: #2563eb;
-    --blue-light: #dbeafe;
-    --yellow: #d97706;
-    --yellow-light: #fef3c7;
-    --radius: 8px;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-    --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
-  }
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--gray-50);
-    color: var(--gray-900);
-    min-height: 100vh;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-
-  /* Nav */
-  nav {
-    background: var(--white);
-    border-bottom: 1px solid var(--gray-200);
-    padding: 0 32px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 50;
-  }
-  .nav-brand {
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--gray-900);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .nav-brand-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 0 3px var(--green-light);
-  }
-  .nav-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--gray-500);
-  }
-  .nav-pill {
-    background: var(--gray-100);
-    border: 1px solid var(--gray-200);
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-  }
-
-  /* Layout */
-  .page { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
-
-  /* Page title */
-  .page-title {
-    margin-bottom: 32px;
-  }
-  .page-title h1 {
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--gray-900);
-    margin-bottom: 4px;
-  }
-  .page-title p { color: var(--gray-500); font-size: 13px; }
-  .overall-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 10px;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    background: var(--green-light);
-    color: var(--green);
-    border: 1px solid #bbf7d0;
-  }
-  .overall-badge.degraded {
-    background: var(--red-light);
-    color: var(--red);
-    border-color: #fecaca;
-  }
-
-  /* Section */
-  .section { margin-bottom: 28px; }
-  .section-title {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    color: var(--gray-400);
-    margin-bottom: 12px;
-  }
-
-  /* Card */
-  .card {
-    background: var(--white);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-sm);
-  }
-
-  /* Metrics */
-  .metrics-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    background: var(--white);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-  }
-  .metric {
-    padding: 20px 24px;
-    border-right: 1px solid var(--gray-200);
-  }
-  .metric:last-child { border-right: none; }
-  .metric-value {
-    font-size: 26px;
-    font-weight: 600;
-    color: var(--gray-900);
-    line-height: 1;
-    margin-bottom: 4px;
-    font-family: 'DM Mono', monospace;
-  }
-  .metric-value.green { color: var(--green); }
-  .metric-value.blue { color: var(--blue); }
-  .metric-label { font-size: 12px; color: var(--gray-500); }
-
-  /* Environment list */
-  .env-list { overflow: hidden; border-radius: var(--radius); border: 1px solid var(--gray-200); box-shadow: var(--shadow-sm); }
-  .env-header {
-    display: grid;
-    grid-template-columns: 160px 1fr 130px 90px;
-    padding: 10px 16px;
-    background: var(--gray-50);
-    border-bottom: 1px solid var(--gray-200);
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--gray-400);
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-  }
-  .env-item {
-    display: grid;
-    grid-template-columns: 160px 1fr 130px 90px;
-    padding: 14px 16px;
-    background: var(--white);
-    border-bottom: 1px solid var(--gray-100);
-    align-items: center;
-    transition: background .1s;
-  }
-  .env-item:last-child { border-bottom: none; }
-  .env-item:hover { background: var(--gray-50); }
-  .env-name-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-    font-size: 13px;
-  }
-  .status-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .status-dot.green { background: var(--green); }
-  .status-dot.yellow { background: var(--yellow); animation: blink 1.2s infinite; }
-  .status-dot.red { background: var(--red); }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-  .env-url { font-size: 12px; color: var(--gray-400); font-family: 'DM Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 16px; }
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 500;
-  }
-  .status-badge.operational { background: var(--green-light); color: var(--green); }
-  .status-badge.checking { background: var(--yellow-light); color: var(--yellow); }
-  .status-badge.down { background: var(--red-light); color: var(--red); }
-  .latency-cell { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--gray-500); }
-  .latency-cell.fast { color: var(--green); }
-
-  /* Demo section */
-  .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-  .panel-head {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--gray-100);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .panel-head-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--gray-700);
-  }
-  .panel-head-sub { font-size: 11px; color: var(--gray-400); font-family: 'DM Mono', monospace; }
-  .panel-body { padding: 18px; }
-
-  /* Form */
-  .field { margin-bottom: 12px; }
-  .field label { display: block; font-size: 11px; font-weight: 500; color: var(--gray-600); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
-  .field input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--gray-300);
-    border-radius: 6px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    color: var(--gray-900);
-    background: var(--white);
-    outline: none;
-    transition: border-color .15s, box-shadow .15s;
-  }
-  .field input:focus {
-    border-color: var(--blue);
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-  }
-  .field input::placeholder { color: var(--gray-300); }
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .submit-btn {
-    width: 100%;
-    padding: 9px;
-    background: var(--gray-900);
-    color: var(--white);
-    border: none;
-    border-radius: 6px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    margin-top: 4px;
-    transition: background .15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-  .submit-btn:hover { background: var(--gray-700); }
-  .response-area {
-    margin-top: 12px;
-    padding: 12px;
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: 6px;
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--gray-500);
-    min-height: 56px;
-    white-space: pre-wrap;
-    line-height: 1.6;
-  }
-  .response-area.ok { color: var(--green); background: var(--green-light); border-color: #bbf7d0; }
-  .response-area.err { color: var(--red); background: var(--red-light); border-color: #fecaca; }
-
-  /* Product list */
-  .product-empty { padding: 24px; text-align: center; color: var(--gray-400); font-size: 12px; }
-  .product-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--gray-100);
-  }
-  .product-item:last-child { border-bottom: none; }
-  .product-name { font-weight: 500; font-size: 13px; color: var(--gray-900); }
-  .product-meta { font-size: 11px; color: var(--gray-400); margin-top: 1px; font-family: 'DM Mono', monospace; }
-  .delete-btn {
-    padding: 4px 10px;
-    background: transparent;
-    border: 1px solid var(--gray-200);
-    border-radius: 4px;
-    font-size: 11px;
-    color: var(--gray-400);
-    cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-    transition: all .15s;
-    flex-shrink: 0;
-  }
-  .delete-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
-
-  /* Load test */
-  .perf-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; overflow: hidden; }
-  .perf-item {
-    padding: 16px 20px;
-    border-right: 1px solid var(--gray-100);
-    text-align: center;
-  }
-  .perf-item:last-child { border-right: none; }
-  .perf-value { font-size: 20px; font-weight: 600; color: var(--gray-900); font-family: 'DM Mono', monospace; }
-  .perf-label { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
-
-  /* Footer */
-  .footer {
-    margin-top: 48px;
-    padding-top: 24px;
-    border-top: 1px solid var(--gray-200);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: var(--gray-400);
-    font-size: 12px;
-  }
-  .footer a { color: var(--gray-600); text-decoration: none; font-weight: 500; }
-  .footer a:hover { color: var(--gray-900); }
-
-  @media (max-width: 720px) {
-    .metrics-row { grid-template-columns: repeat(2,1fr); }
-    .demo-grid { grid-template-columns: 1fr; }
-    .env-header, .env-item { grid-template-columns: 1fr 1fr; }
-    .perf-grid { grid-template-columns: repeat(2,1fr); }
-    .page { padding: 24px 16px; }
-  }
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #7d8590;
+  --green: #3fb950;
+  --green-bg: #0d1f17;
+  --red: #f85149;
+  --red-bg: #1f0d0d;
+  --yellow: #d29922;
+  --yellow-bg: #1f1a0d;
+  --blue: #58a6ff;
+  --blue-bg: #0d1a2d;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  min-height: 100vh;
+}
+.topbar {
+  height: 48px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: glow 2s infinite;
+}
+@keyframes glow { 0%,100%{box-shadow:0 0 8px var(--green)} 50%{box-shadow:0 0 16px var(--green)} }
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--green);
+}
+.live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  height: calc(100vh - 48px);
+}
+.left-panel {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.right-panel {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.section {
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+}
+.section-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-title::before {
+  content: '';
+  width: 3px; height: 12px;
+  background: var(--blue);
+  border-radius: 2px;
+}
+.env-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  background: var(--surface2);
+  border: 1px solid transparent;
+}
+.env-left { display: flex; align-items: center; gap: 8px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot.red { background: var(--red); }
+.dot.yellow { background: var(--yellow); animation: pulse 1s infinite; }
+.env-name { font-weight: 600; font-size: 12px; }
+.env-sub { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.pill {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.pill.ok { background: var(--green-bg); color: var(--green); border: 1px solid #1a3a25; }
+.pill.checking { background: var(--yellow-bg); color: var(--yellow); border: 1px solid #3a2e1a; }
+.pill.down { background: var(--red-bg); color: var(--red); border: 1px solid #3a1a1a; }
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.metric-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.metric-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+}
+.metric-val.green { color: var(--green); }
+.metric-val.blue { color: var(--blue); }
+.metric-val.yellow { color: var(--yellow); }
+.metric-val.red { color: var(--red); }
+.metric-label { font-size: 10px; color: var(--muted); margin-top: 4px; }
+.ctrl-btn {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface2);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  transition: all .2s;
+  text-align: left;
+  margin-bottom: 8px;
+}
+.ctrl-btn:hover { border-color: var(--blue); background: var(--blue-bg); }
+.ctrl-btn.danger:hover { border-color: var(--red); background: var(--red-bg); color: var(--red); }
+.ctrl-btn:disabled { opacity: .4; cursor: not-allowed; }
+.ctrl-icon { font-size: 16px; flex-shrink: 0; }
+.ctrl-text { flex: 1; }
+.ctrl-sub { font-size: 9px; color: var(--muted); display: block; margin-top: 2px; }
+.result-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+  min-height: 44px;
+  white-space: pre-wrap;
+  display: none;
+}
+.result-box.show { display: block; }
+.result-box.ok { color: var(--green); border-color: #1a3a25; }
+.result-box.err { color: var(--red); border-color: #3a1a1a; }
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border-bottom: 1px solid var(--border);
+}
+.chart-panel {
+  padding: 14px 16px;
+  border-right: 1px solid var(--border);
+}
+.chart-panel:last-child { border-right: none; }
+.chart-container { height: 100px; margin-top: 8px; }
+.db-panel {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.db-stat { text-align: center; }
+.db-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--blue);
+}
+.db-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.db-actions { display: flex; flex-direction: column; gap: 6px; }
+.db-btn {
+  padding: 6px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.db-btn:hover { border-color: var(--blue); color: var(--blue); }
+.log-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+.log-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.log-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  max-height: 240px;
+}
+.log-line {
+  display: flex;
+  gap: 10px;
+  padding: 2px 0;
+  border-bottom: 1px solid #ffffff06;
+  animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.log-time { color: var(--muted); flex-shrink: 0; }
+.log-msg { color: var(--text); }
+.log-msg.ok { color: var(--green); }
+.log-msg.err { color: var(--red); }
+.log-msg.warn { color: var(--yellow); }
+.log-msg.info { color: var(--blue); }
+.lt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+.lt-stat { text-align: center; }
+.lt-val { font-size: 18px; font-weight: 600; color: var(--green); font-family: 'JetBrains Mono', monospace; }
+.lt-label { font-size: 9px; color: var(--muted); }
 </style>
 </head>
 <body>
 
-<nav>
-  <div class="nav-brand">
-    <div class="nav-brand-dot" id="navDot"></div>
-    multi-env-pipeline
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-dot" id="brandDot"></div>
+    multi-env-pipeline / operations
   </div>
-  <div class="nav-right">
-    <span class="nav-pill">prod</span>
-    <span id="navTime">—</span>
+  <div class="topbar-right">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <span id="clock">--:--:--</span>
+    <span id="topInvocations">— invocations</span>
   </div>
-</nav>
+</div>
 
-<div class="page">
+<div class="layout">
+  <div class="left-panel">
 
-  <div class="page-title">
-    <h1>System Status</h1>
-    <p>Real-time health across all deployment environments</p>
-    <div class="overall-badge" id="overallBadge">Checking systems...</div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Live Metrics</div>
-    <div class="metrics-row">
-      <div class="metric">
-        <div class="metric-value green">99.9%</div>
-        <div class="metric-label">Uptime (30 days)</div>
-      </div>
-      <div class="metric">
-        <div class="metric-value blue" id="mLatency">—</div>
-        <div class="metric-label">Response time (ms)</div>
-      </div>
-      <div class="metric">
-        <div class="metric-value" id="mProducts">—</div>
-        <div class="metric-label">Products in database</div>
-      </div>
-      <div class="metric">
-        <div class="metric-value">445</div>
-        <div class="metric-label">Peak req/sec</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Environment Health</div>
-    <div class="env-list">
-      <div class="env-header">
-        <div>Environment</div>
-        <div>Endpoint</div>
-        <div>Status</div>
-        <div>Latency</div>
-      </div>
-      <div class="env-item">
-        <div class="env-name-cell"><div class="status-dot yellow" id="dot-prod"></div>production</div>
-        <div class="env-url">multi-env-prod-1281641858.us-east-1.elb.amazonaws.com</div>
-        <div><span class="status-badge checking" id="badge-prod">Checking</span></div>
-        <div class="latency-cell" id="lat-prod">—</div>
-      </div>
-      <div class="env-item">
-        <div class="env-name-cell"><div class="status-dot yellow" id="dot-staging"></div>staging</div>
-        <div class="env-url">Approval-gated · ECS Fargate</div>
-        <div><span class="status-badge checking" id="badge-staging">Checking</span></div>
-        <div class="latency-cell" id="lat-staging">—</div>
-      </div>
-      <div class="env-item">
-        <div class="env-name-cell"><div class="status-dot yellow" id="dot-dev"></div>development</div>
-        <div class="env-url">Auto-deploy on push · ECS Fargate</div>
-        <div><span class="status-badge checking" id="badge-dev">Checking</span></div>
-        <div class="latency-cell" id="lat-dev">—</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Live Product Inventory Demo</div>
-    <div class="demo-grid">
-
-      <div class="card">
-        <div class="panel-head">
-          <div class="panel-head-title">Add a Product</div>
-          <div class="panel-head-sub">POST /products</div>
-        </div>
-        <div class="panel-body">
-          <div class="field">
-            <label>Product Name</label>
-            <input id="pName" placeholder="e.g. Air Force 1 White" />
+    <div class="section">
+      <div class="section-title">Environment Health</div>
+      <div class="env-row">
+        <div class="env-left">
+          <div class="dot yellow" id="dot-prod"></div>
+          <div>
+            <div class="env-name">production</div>
+            <div class="env-sub" id="lat-prod">checking...</div>
           </div>
-          <div class="two-col">
-            <div class="field">
-              <label>Price (USD)</label>
-              <input id="pPrice" type="number" placeholder="110" />
-            </div>
-            <div class="field">
-              <label>Stock Qty</label>
-              <input id="pStock" type="number" placeholder="50" />
-            </div>
+        </div>
+        <span class="pill checking" id="pill-prod">—</span>
+      </div>
+      <div class="env-row">
+        <div class="env-left">
+          <div class="dot yellow" id="dot-staging"></div>
+          <div>
+            <div class="env-name">staging</div>
+            <div class="env-sub" id="lat-staging">approval gated</div>
           </div>
-          <button class="submit-btn" onclick="addProduct()">
-            <span>Add to Inventory</span>
-          </button>
-          <div class="response-area" id="addResp">// Response will appear here</div>
         </div>
+        <span class="pill checking" id="pill-staging">—</span>
       </div>
-
-      <div class="card">
-        <div class="panel-head">
-          <div class="panel-head-title">Current Inventory</div>
-          <div class="panel-head-sub" id="invCount">GET /products</div>
+      <div class="env-row">
+        <div class="env-left">
+          <div class="dot yellow" id="dot-dev"></div>
+          <div>
+            <div class="env-name">development</div>
+            <div class="env-sub" id="lat-dev">auto deploy</div>
+          </div>
         </div>
-        <div class="panel-body" id="productList">
-          <div class="product-empty">Loading inventory...</div>
-        </div>
+        <span class="pill checking" id="pill-dev">—</span>
       </div>
-
     </div>
-  </div>
 
-  <div class="section">
-    <div class="section-title">Load Test Results</div>
-    <div class="card">
-      <div class="perf-grid">
-        <div class="perf-item">
-          <div class="perf-value">5,000</div>
-          <div class="perf-label">Total requests</div>
+    <div class="section">
+      <div class="section-title">Lambda Metrics</div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-val green" id="mInvocations">—</div>
+          <div class="metric-label">Invocations (30m)</div>
         </div>
-        <div class="perf-item">
-          <div class="perf-value">100%</div>
-          <div class="perf-label">Success rate</div>
+        <div class="metric-card">
+          <div class="metric-val blue" id="mDuration">—ms</div>
+          <div class="metric-label">Avg Duration</div>
         </div>
-        <div class="perf-item">
-          <div class="perf-value">222ms</div>
-          <div class="perf-label">Avg response</div>
+        <div class="metric-card">
+          <div class="metric-val yellow" id="mErrors">—</div>
+          <div class="metric-label">Errors (30m)</div>
         </div>
-        <div class="perf-item">
-          <div class="perf-value">445/s</div>
-          <div class="perf-label">Throughput</div>
+        <div class="metric-card">
+          <div class="metric-val" id="mErrorRate">—%</div>
+          <div class="metric-label">Error Rate</div>
         </div>
       </div>
     </div>
+
+    <div class="section">
+      <div class="section-title">Controls</div>
+
+      <button class="ctrl-btn" onclick="fireTestRequest()" id="testBtn">
+        <span class="ctrl-icon">→</span>
+        <div class="ctrl-text">
+          Fire Test Request
+          <span class="ctrl-sub">GET /health → watch it appear in logs below</span>
+        </div>
+      </button>
+
+      <button class="ctrl-btn" onclick="writeTestRecord()" id="writeBtn">
+        <span class="ctrl-icon">✎</span>
+        <div class="ctrl-text">
+          Write Test Record
+          <span class="ctrl-sub">POST → Lambda → DynamoDB → watch DB count change</span>
+        </div>
+      </button>
+
+      <button class="ctrl-btn danger" onclick="runLoadTest()" id="loadBtn">
+        <span class="ctrl-icon">⚡</span>
+        <div class="ctrl-text">
+          Stress Test (100 req)
+          <span class="ctrl-sub">Watch invocations spike on graph</span>
+        </div>
+      </button>
+
+      <div class="result-box" id="ctrlResult"></div>
+
+      <div class="lt-grid" id="ltGrid" style="display:none">
+        <div class="lt-stat"><div class="lt-val" id="ltSuccess">—</div><div class="lt-label">success</div></div>
+        <div class="lt-stat"><div class="lt-val" id="ltRate">—</div><div class="lt-label">rate</div></div>
+        <div class="lt-stat"><div class="lt-val" id="ltAvg">—</div><div class="lt-label">avg ms</div></div>
+        <div class="lt-stat"><div class="lt-val" id="ltCost">—</div><div class="lt-label">cost $</div></div>
+      </div>
+    </div>
+
   </div>
 
-  <div class="footer">
-    <div>Built by <a href="https://github.com/DesRoyal1/multi-env-pipeline" target="_blank">DesRoyal1</a> — Multi-Env CI/CD Pipeline on AWS</div>
-    <div id="footerTime">Auto-refreshes every 30s</div>
-  </div>
+  <div class="right-panel">
 
+    <div class="charts-row">
+      <div class="chart-panel">
+        <div class="section-title">Invocations — 30min</div>
+        <div class="chart-container"><canvas id="invChart"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="section-title">Duration (ms) — 30min</div>
+        <div class="chart-container"><canvas id="durChart"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="section-title">Errors — 30min</div>
+        <div class="chart-container"><canvas id="errChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="db-panel">
+      <div class="db-stat">
+        <div class="db-val" id="dbCount">—</div>
+        <div class="db-label">DynamoDB Records</div>
+      </div>
+      <div class="db-stat">
+        <div class="db-val" style="color:var(--green);font-size:18px" id="dbTable">—</div>
+        <div class="db-label">Active Table</div>
+      </div>
+      <div class="db-stat">
+        <div class="db-val" style="color:var(--muted);font-size:18px">$0.00</div>
+        <div class="db-label">Monthly Cost</div>
+      </div>
+    </div>
+
+    <div class="log-section">
+      <div class="log-header">
+        <div class="section-title" style="margin-bottom:0">Live Log Stream — CloudWatch</div>
+        <span style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace" id="logCount">0 entries</span>
+      </div>
+      <div class="log-body" id="logBody">
+        <div class="log-line">
+          <span class="log-time">--:--:--</span>
+          <span class="log-msg info">// Connecting to CloudWatch log stream...</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <script>
-  const BASE = 'http://multi-env-prod-1281641858.us-east-1.elb.amazonaws.com';
+const BASE = '';
+let invChart, durChart, errChart;
+let logEntries = [];
 
-  async function checkHealth(envId, url) {
-    const dot = document.getElementById('dot-' + envId);
-    const badge = document.getElementById('badge-' + envId);
-    const lat = document.getElementById('lat-' + envId);
-    const start = Date.now();
-    try {
-      const r = await fetch(url + '/health');
-      const ms = Date.now() - start;
-      if (r.ok) {
-        dot.className = 'status-dot green';
-        badge.className = 'status-badge operational';
-        badge.textContent = 'Operational';
-        lat.className = 'latency-cell' + (ms < 200 ? ' fast' : '');
-        lat.textContent = ms + 'ms';
-        return { ok: true, ms };
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function initCharts() {
+  const opts = (color) => ({
+    type: 'line',
+    data: { labels: [], datasets: [{ data: [], borderColor: color, backgroundColor: color + '22', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 300 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7d8590', font: { size: 9 }, maxTicksLimit: 5 }, grid: { color: '#21262d' } },
+        y: { ticks: { color: '#7d8590', font: { size: 9 } }, grid: { color: '#21262d' }, beginAtZero: true }
       }
-    } catch(e) {}
-    dot.className = 'status-dot red';
-    badge.className = 'status-badge down';
-    badge.textContent = 'Unreachable';
-    lat.textContent = '—';
-    return { ok: false };
-  }
-
-  async function loadProducts() {
-    try {
-      const r = await fetch(BASE + '/products');
-      const data = await r.json();
-      const products = data.products || [];
-      document.getElementById('mProducts').textContent = products.length;
-      document.getElementById('invCount').textContent = products.length + ' item' + (products.length !== 1 ? 's' : '') + ' · GET /products';
-      const list = document.getElementById('productList');
-      if (products.length === 0) {
-        list.innerHTML = '<div class="product-empty">No products yet — add one using the form</div>';
-        return;
-      }
-      list.innerHTML = products.map(p => `
-        <div class="product-item">
-          <div>
-            <div class="product-name">${p.name}</div>
-            <div class="product-meta">$${p.price} &nbsp;·&nbsp; ${p.stock} in stock &nbsp;·&nbsp; ${p.id.slice(0,8)}...</div>
-          </div>
-          <button class="delete-btn" onclick="deleteProduct('${p.id}')">Remove</button>
-        </div>
-      `).join('');
-    } catch(e) {
-      document.getElementById('productList').innerHTML = '<div class="product-empty">Could not reach API</div>';
     }
-  }
+  });
+  invChart = new Chart(document.getElementById('invChart'), opts('#3fb950'));
+  durChart = new Chart(document.getElementById('durChart'), opts('#58a6ff'));
+  errChart = new Chart(document.getElementById('errChart'), opts('#f85149'));
+}
 
-  async function addProduct() {
-    const name = document.getElementById('pName').value.trim();
-    const price = document.getElementById('pPrice').value;
-    const stock = document.getElementById('pStock').value;
-    const resp = document.getElementById('addResp');
-    if (!name || !price) {
-      resp.className = 'response-area err';
-      resp.textContent = '// Error: name and price are required';
-      return;
+function updateChart(chart, data) {
+  if (!data || !data.length) return;
+  chart.data.labels = data.map(p => p.time);
+  chart.data.datasets[0].data = data.map(p => p.value);
+  chart.update();
+}
+
+async function checkHealth(envId, url) {
+  const dot = document.getElementById('dot-' + envId);
+  const pill = document.getElementById('pill-' + envId);
+  const lat = document.getElementById('lat-' + envId);
+  const start = Date.now();
+  try {
+    const r = await fetch(url + '/health');
+    const ms = Date.now() - start;
+    if (r.ok) {
+      dot.className = 'dot green';
+      pill.className = 'pill ok';
+      pill.textContent = 'operational';
+      if (lat) lat.textContent = ms + 'ms';
+      return true;
     }
-    resp.className = 'response-area';
-    resp.textContent = '// Sending request...';
-    try {
-      const r = await fetch(BASE + '/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, price: parseFloat(price), stock: parseInt(stock) || 0 })
-      });
-      const data = await r.json();
-      resp.className = 'response-area ok';
-      resp.textContent = '// 201 Created\n' + JSON.stringify(data.product, null, 2);
-      document.getElementById('pName').value = '';
-      document.getElementById('pPrice').value = '';
-      document.getElementById('pStock').value = '';
-      loadProducts();
-    } catch(e) {
-      resp.className = 'response-area err';
-      resp.textContent = '// Error: ' + e.message;
+  } catch(e) {}
+  dot.className = 'dot red';
+  pill.className = 'pill down';
+  pill.textContent = 'unreachable';
+  return false;
+}
+
+async function fetchMetrics() {
+  try {
+    const r = await fetch(BASE + '/api/metrics');
+    const data = await r.json();
+    const t = data.totals || {};
+    document.getElementById('mInvocations').textContent = t.invocations || 0;
+    document.getElementById('mDuration').textContent = (t.avg_duration || 0) + 'ms';
+    document.getElementById('mErrors').textContent = t.errors || 0;
+    const errRate = t.error_rate || 0;
+    const errEl = document.getElementById('mErrorRate');
+    errEl.textContent = errRate + '%';
+    errEl.className = 'metric-val ' + (errRate > 5 ? 'red' : errRate > 0 ? 'yellow' : 'green');
+    document.getElementById('topInvocations').textContent = (t.invocations || 0) + ' invocations';
+    updateChart(invChart, data.invocations);
+    updateChart(durChart, data.duration);
+    updateChart(errChart, data.errors);
+  } catch(e) {}
+}
+
+async function fetchDB() {
+  try {
+    const r = await fetch(BASE + '/api/db');
+    const data = await r.json();
+    document.getElementById('dbCount').textContent = data.count || 0;
+    document.getElementById('dbTable').textContent = data.table || '—';
+  } catch(e) {}
+}
+
+async function fetchLogs() {
+  try {
+    const r = await fetch(BASE + '/api/logs');
+    const data = await r.json();
+    if (!data.logs || !data.logs.length) return;
+    const body = document.getElementById('logBody');
+    const newLogs = data.logs.filter(l => !logEntries.some(e => e.time === l.time && e.message === l.message));
+    newLogs.forEach(log => {
+      logEntries.push(log);
+      const msg = log.message;
+      let cls = 'info';
+      if (msg.includes('200') || msg.includes('201')) cls = 'ok';
+      else if (msg.includes('ERROR') || msg.includes('500')) cls = 'err';
+      else if (msg.includes('WARNING')) cls = 'warn';
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.innerHTML = `<span class="log-time">${log.time}</span><span class="log-msg ${cls}">${msg}</span>`;
+      body.appendChild(line);
+    });
+    if (logEntries.length > 50) {
+      logEntries = logEntries.slice(-50);
+      const lines = body.querySelectorAll('.log-line');
+      lines.forEach((l, i) => { if (i < lines.length - 50) l.remove(); });
     }
-  }
+    body.scrollTop = body.scrollHeight;
+    document.getElementById('logCount').textContent = logEntries.length + ' entries';
+  } catch(e) {}
+}
 
-  async function deleteProduct(id) {
-    try {
-      await fetch(BASE + '/products/' + id, { method: 'DELETE' });
-      loadProducts();
-    } catch(e) {}
-  }
+function addLog(time, message, cls) {
+  const body = document.getElementById('logBody');
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">${time}</span><span class="log-msg ${cls || 'info'}">${message}</span>`;
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+}
 
-  async function refresh() {
-    const result = await checkHealth('prod', BASE);
-    checkHealth('staging', BASE);
-    checkHealth('dev', BASE);
-    if (result.ms) document.getElementById('mLatency').textContent = result.ms;
-    const badge = document.getElementById('overallBadge');
-    const dot = document.getElementById('navDot');
-    if (result.ok) {
-      badge.className = 'overall-badge';
-      badge.textContent = 'All Systems Operational';
-      dot.style.background = '#16a34a';
-    } else {
-      badge.className = 'overall-badge degraded';
-      badge.textContent = 'Degraded Performance';
-      dot.style.background = '#dc2626';
-    }
-    loadProducts();
-    const now = new Date().toLocaleTimeString();
-    document.getElementById('navTime').textContent = 'Updated ' + now;
-    document.getElementById('footerTime').textContent = 'Last updated ' + now + ' · auto-refreshes every 30s';
-  }
+function showResult(msg, cls) {
+  const box = document.getElementById('ctrlResult');
+  box.className = 'result-box show ' + (cls || '');
+  box.textContent = msg;
+}
 
-  refresh();
-  setInterval(refresh, 30000);
+async function fireTestRequest() {
+  const btn = document.getElementById('testBtn');
+  btn.disabled = true;
+  showResult('// Firing GET /health...', '');
+  const start = Date.now();
+  try {
+    const r = await fetch(BASE + '/health');
+    const ms = Date.now() - start;
+    const data = await r.json();
+    showResult(`// 200 OK — ${ms}ms\n// ${JSON.stringify(data)}`, 'ok');
+    addLog(new Date().toLocaleTimeString('en',{hour12:false}), `→ GET /health 200 ${ms}ms`, 'ok');
+  } catch(e) {
+    showResult('// Error: ' + e.message, 'err');
+  }
+  btn.disabled = false;
+}
+
+async function writeTestRecord() {
+  const btn = document.getElementById('writeBtn');
+  btn.disabled = true;
+  showResult('// Writing test record to DynamoDB...', '');
+  const start = Date.now();
+  try {
+    const r = await fetch(BASE + '/api/test-transaction', { method: 'POST' });
+    const data = await r.json();
+    const ms = Date.now() - start;
+    showResult(`// ✓ Written in ${data.duration_ms}ms\n// id: ${data.id?.slice(0,8)}...\n// table: products-prod`, 'ok');
+    addLog(new Date().toLocaleTimeString('en',{hour12:false}), `→ POST /api/test-transaction 200 ${ms}ms`, 'ok');
+    fetchDB();
+  } catch(e) {
+    showResult('// Error: ' + e.message, 'err');
+  }
+  btn.disabled = false;
+}
+
+async function runLoadTest() {
+  const btn = document.getElementById('loadBtn');
+  const grid = document.getElementById('ltGrid');
+  btn.disabled = true;
+  grid.style.display = 'none';
+  showResult('// Firing 100 requests...\n// Watch invocations spike on graph above', '');
+  addLog(new Date().toLocaleTimeString('en',{hour12:false}), '⚡ STRESS TEST — 100 requests firing', 'warn');
+  try {
+    const r = await fetch(BASE + '/api/loadtest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: 100 })
+    });
+    const data = await r.json();
+    showResult(`// Complete — ${data.success}/${data.requests} success`, 'ok');
+    document.getElementById('ltSuccess').textContent = data.success;
+    document.getElementById('ltRate').textContent = data.success_rate + '%';
+    document.getElementById('ltAvg').textContent = data.avg_ms + 'ms';
+    document.getElementById('ltCost').textContent = '$' + data.cost_usd;
+    grid.style.display = 'grid';
+    addLog(new Date().toLocaleTimeString('en',{hour12:false}), `✓ STRESS TEST complete — ${data.success_rate}% success, ${data.avg_ms}ms avg, cost $${data.cost_usd}`, 'ok');
+    fetchMetrics();
+  } catch(e) {
+    showResult('// Error: ' + e.message, 'err');
+  }
+  btn.disabled = false;
+}
+
+async function refresh() {
+  const ok = await checkHealth('prod', BASE);
+  checkHealth('staging', BASE);
+  checkHealth('dev', BASE);
+  document.getElementById('brandDot').style.background = ok ? 'var(--green)' : 'var(--red)';
+  await fetchMetrics();
+  await fetchDB();
+  await fetchLogs();
+}
+
+initCharts();
+refresh();
+setInterval(refresh, 20000);
+setInterval(fetchLogs, 8000);
 </script>
 </body>
 </html>

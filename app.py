@@ -2,10 +2,9 @@ import os
 import uuid
 import json
 import time
-import subprocess
 import boto3
 from datetime import datetime, timedelta
-from flask import Flask, jsonify, request, render_template, Response, stream_with_context
+from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -13,27 +12,18 @@ CORS(app)
 
 REGION = 'us-east-1'
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'prod')
-CLUSTER = f'multi-env-{ENVIRONMENT}'
-SERVICE = f'multi-env-{ENVIRONMENT}'
-LOG_GROUP = f'/ecs/multi-env-{ENVIRONMENT}'
+LOG_GROUP = f'/aws/lambda/multi-env-api-{ENVIRONMENT}'
+FUNCTION_NAME = f'multi-env-api-{ENVIRONMENT}'
 
 def get_table():
     dynamodb = boto3.resource('dynamodb', region_name=REGION)
-    table_name = os.environ.get('DYNAMODB_TABLE', 'products-dev')
-    return dynamodb.Table(table_name)
+    return dynamodb.Table(os.environ.get('DYNAMODB_TABLE', 'products-dev'))
 
-def get_cloudwatch():
+def get_cw():
     return boto3.client('cloudwatch', region_name=REGION)
 
-def get_logs_client():
+def get_logs():
     return boto3.client('logs', region_name=REGION)
-
-def get_ecs():
-    return boto3.client('ecs', region_name=REGION)
-
-# ─────────────────────────────────────────
-# EXISTING ENDPOINTS
-# ─────────────────────────────────────────
 
 @app.route('/')
 def status_page():
@@ -70,95 +60,60 @@ def create_product():
     table.put_item(Item=product)
     return jsonify({"message": "Product created", "product": product}), 201
 
-@app.route('/products/<product_id>', methods=['PUT'])
-def update_product(product_id):
-    data = request.get_json()
-    table = get_table()
-    table.update_item(
-        Key={'id': product_id},
-        UpdateExpression='SET stock = :stock',
-        ExpressionAttributeValues={':stock': str(data['stock'])}
-    )
-    return jsonify({"message": "Product updated"})
-
 @app.route('/products/<product_id>', methods=['DELETE'])
 def delete_product(product_id):
     table = get_table()
     table.delete_item(Key={'id': product_id})
     return jsonify({"message": "Product deleted"})
 
-# ─────────────────────────────────────────
-# GLASS WALL ENDPOINTS
-# ─────────────────────────────────────────
-
 @app.route('/api/metrics')
 def get_metrics():
     try:
-        cw = get_cloudwatch()
+        cw = get_cw()
         end = datetime.utcnow()
-        start = end - timedelta(minutes=10)
+        start = end - timedelta(minutes=30)
 
-        def get_metric(name):
+        def get_metric(name, stat='Sum'):
             resp = cw.get_metric_statistics(
-                Namespace='AWS/ECS',
+                Namespace='AWS/Lambda',
                 MetricName=name,
-                Dimensions=[
-                    {'Name': 'ClusterName', 'Value': CLUSTER},
-                    {'Name': 'ServiceName', 'Value': SERVICE}
-                ],
+                Dimensions=[{'Name': 'FunctionName', 'Value': FUNCTION_NAME}],
                 StartTime=start,
                 EndTime=end,
-                Period=60,
-                Statistics=['Average']
+                Period=300,
+                Statistics=[stat]
             )
             points = sorted(resp['Datapoints'], key=lambda x: x['Timestamp'])
-            return [{'time': p['Timestamp'].strftime('%H:%M'), 'value': round(p['Average'], 1)} for p in points]
+            return [{'time': p['Timestamp'].strftime('%H:%M'), 'value': round(p[stat], 2)} for p in points]
 
-        cpu = get_metric('CPUUtilization')
-        memory = get_metric('MemoryUtilization')
+        invocations = get_metric('Invocations')
+        errors = get_metric('Errors')
+        duration = get_metric('Duration', 'Average')
+
+        total_invocations = sum(p['value'] for p in invocations)
+        total_errors = sum(p['value'] for p in errors)
+        avg_duration = round(sum(p['value'] for p in duration) / len(duration), 1) if duration else 0
+        error_rate = round((total_errors / total_invocations * 100), 2) if total_invocations > 0 else 0
 
         return jsonify({
-            'cpu': cpu,
-            'memory': memory,
-            'current_cpu': cpu[-1]['value'] if cpu else 0,
-            'current_memory': memory[-1]['value'] if memory else 0,
+            'invocations': invocations,
+            'errors': errors,
+            'duration': duration,
+            'totals': {
+                'invocations': int(total_invocations),
+                'errors': int(total_errors),
+                'avg_duration': avg_duration,
+                'error_rate': error_rate
+            },
             'environment': ENVIRONMENT
         })
     except Exception as e:
-        return jsonify({'error': str(e), 'cpu': [], 'memory': [], 'current_cpu': 0, 'current_memory': 0})
-
-@app.route('/api/tasks')
-def get_tasks():
-    try:
-        ecs = get_ecs()
-        task_arns = ecs.list_tasks(cluster=CLUSTER, serviceName=SERVICE)['taskArns']
-        if not task_arns:
-            return jsonify({'tasks': [], 'running': 0, 'desired': 1})
-        tasks = ecs.describe_tasks(cluster=CLUSTER, tasks=task_arns)['tasks']
-        task_list = []
-        for t in tasks:
-            task_list.append({
-                'id': t['taskArn'].split('/')[-1][:8],
-                'status': t['lastStatus'],
-                'health': t.get('healthStatus', 'UNKNOWN'),
-                'started': t.get('startedAt', datetime.utcnow()).strftime('%H:%M:%S') if hasattr(t.get('startedAt', ''), 'strftime') else 'starting',
-                'cpu': t.get('cpu', '256'),
-                'memory': t.get('memory', '512')
-            })
-        svc = ecs.describe_services(cluster=CLUSTER, services=[SERVICE])['services'][0]
-        return jsonify({
-            'tasks': task_list,
-            'running': svc['runningCount'],
-            'desired': svc['desiredCount'],
-            'pending': svc['pendingCount']
-        })
-    except Exception as e:
-        return jsonify({'error': str(e), 'tasks': [], 'running': 0, 'desired': 1})
+        return jsonify({'error': str(e), 'invocations': [], 'errors': [], 'duration': [], 'totals': {'invocations': 0, 'errors': 0, 'avg_duration': 0, 'error_rate': 0}})
 
 @app.route('/api/logs')
 def get_log_stream():
     try:
-        logs = get_logs_client()
+        logs = get_logs()
         streams = logs.describe_log_streams(
             logGroupName=LOG_GROUP,
             orderBy='LastEventTime',
@@ -173,7 +128,7 @@ def get_log_stream():
         events = logs.get_log_events(
             logGroupName=LOG_GROUP,
             logStreamName=stream_name,
-            limit=25,
+            limit=30,
             startFromHead=False
         )['events']
 
@@ -181,117 +136,82 @@ def get_log_stream():
         for e in events:
             ts = datetime.utcfromtimestamp(e['timestamp'] / 1000).strftime('%H:%M:%S')
             msg = e['message'].strip()
-            log_lines.append({'time': ts, 'message': msg})
+            if msg and not msg.startswith('START') and not msg.startswith('END') and not msg.startswith('INIT'):
+                log_lines.append({'time': ts, 'message': msg[:120]})
 
         return jsonify({'logs': log_lines[-20:]})
     except Exception as e:
-        return jsonify({'logs': [{'time': '00:00:00', 'message': f'Log stream initializing... ({str(e)[:50]})'}]})
+        return jsonify({'logs': [{'time': '00:00:00', 'message': 'Connecting to log stream...'}]})
+
+@app.route('/api/db')
+def get_db_stats():
+    try:
+        table = get_table()
+        result = table.scan(Select='COUNT')
+        return jsonify({
+            'count': result.get('Count', 0),
+            'table': os.environ.get('DYNAMODB_TABLE', 'products-dev'),
+            'environment': ENVIRONMENT
+        })
+    except Exception as e:
+        return jsonify({'count': 0, 'error': str(e)})
+
+@app.route('/api/test-transaction', methods=['POST'])
+def test_transaction():
+    try:
+        start = time.time()
+        table = get_table()
+        test_id = str(uuid.uuid4())
+        table.put_item(Item={
+            'id': test_id,
+            'name': f'test-record-{test_id[:8]}',
+            'price': '0',
+            'stock': '0',
+            'test': 'true',
+            'created': datetime.utcnow().isoformat()
+        })
+        duration = round((time.time() - start) * 1000, 1)
+        return jsonify({
+            'status': 'success',
+            'id': test_id,
+            'duration_ms': duration,
+            'message': f'Written to DynamoDB in {duration}ms'
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/loadtest', methods=['POST'])
 def run_loadtest():
     try:
         data = request.get_json() or {}
-        requests_count = min(data.get('requests', 500), 1000)
-        concurrency = min(data.get('concurrency', 50), 100)
-        target = f'http://localhost:5000/health'
+        count = min(int(data.get('requests', 100)), 200)
+        results = {'success': 0, 'errors': 0, 'total_ms': 0}
 
-        def generate():
-            yield json.dumps({'status': 'starting', 'message': f'Firing {requests_count} requests at {concurrency} concurrent...'}) + '\n'
-            start = time.time()
+        import urllib.request as urllib_req
+        for i in range(count):
             try:
-                result = subprocess.run(
-                    ['hey', '-n', str(requests_count), '-c', str(concurrency), target],
-                    capture_output=True, text=True, timeout=60
+                start = time.time()
+                urllib_req.urlopen(
+                    f'https://{request.host}/health',
+                    timeout=5
                 )
-                duration = round(time.time() - start, 2)
-                output = result.stdout
+                results['success'] += 1
+                results['total_ms'] += (time.time() - start) * 1000
+            except Exception:
+                results['errors'] += 1
 
-                rps = 0
-                avg = 0
-                success = 0
-                for line in output.split('\n'):
-                    if 'Requests/sec:' in line:
-                        try: rps = float(line.split(':')[1].strip())
-                        except: pass
-                    if 'Average:' in line and 'secs' in line:
-                        try: avg = round(float(line.split(':')[1].strip().split(' ')[0]) * 1000, 1)
-                        except: pass
-                    if '[200]' in line:
-                        try: success = int(line.strip().split()[1])
-                        except: pass
-
-                yield json.dumps({
-                    'status': 'complete',
-                    'requests': requests_count,
-                    'duration': duration,
-                    'rps': round(rps, 1),
-                    'avg_ms': avg,
-                    'success': success,
-                    'success_rate': round((success / requests_count) * 100, 1) if requests_count > 0 else 0
-                }) + '\n'
-            except subprocess.TimeoutExpired:
-                yield json.dumps({'status': 'error', 'message': 'Load test timed out'}) + '\n'
-            except FileNotFoundError:
-                yield json.dumps({'status': 'error', 'message': 'hey not installed on server'}) + '\n'
-
-        return Response(stream_with_context(generate()), mimetype='application/x-ndjson')
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/api/incident', methods=['POST'])
-def simulate_incident():
-    try:
-        ecs = get_ecs()
-        task_arns = ecs.list_tasks(cluster=CLUSTER, serviceName=SERVICE)['taskArns']
-        if not task_arns:
-            return jsonify({'status': 'error', 'message': 'No running tasks found'}), 404
-
-        task_to_stop = task_arns[0]
-        task_id = task_to_stop.split('/')[-1][:8]
-
-        ecs.stop_task(
-            cluster=CLUSTER,
-            task=task_to_stop,
-            reason='Simulated incident via glass wall demo'
-        )
-
+        avg_ms = round(results['total_ms'] / results['success'], 1) if results['success'] > 0 else 0
         return jsonify({
-            'status': 'incident_triggered',
-            'message': f'Container {task_id} stopped. Watch the self-healing system respond.',
-            'task_id': task_id,
-            'next': 'CloudWatch will detect zero running tasks within 60 seconds and trigger Lambda self-healing'
+            'status': 'complete',
+            'requests': count,
+            'success': results['success'],
+            'errors': results['errors'],
+            'success_rate': round(results['success'] / count * 100, 1),
+            'avg_ms': avg_ms,
+            'cost_usd': round(count * 0.0000002, 8)
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/api/pipeline')
-def get_pipeline():
-    try:
-        token = os.environ.get('GITHUB_TOKEN', '')
-        if not token:
-            return jsonify({'runs': [], 'error': 'No GitHub token configured'})
-
-        import urllib.request
-        req = urllib.request.Request(
-            'https://api.github.com/repos/DesRoyal1/multi-env-pipeline/actions/runs?per_page=5',
-            headers={'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
-        )
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read())
-
-        runs = []
-        for r in data.get('workflow_runs', [])[:5]:
-            runs.append({
-                'id': r['id'],
-                'name': r['head_commit']['message'][:50] if r.get('head_commit') else 'Unknown',
-                'status': r['status'],
-                'conclusion': r.get('conclusion', 'in_progress'),
-                'created_at': r['created_at'],
-                'url': r['html_url']
-            })
-        return jsonify({'runs': runs})
-    except Exception as e:
-        return jsonify({'runs': [], 'error': str(e)})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
