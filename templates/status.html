@@ -391,6 +391,13 @@ body {
         </div>
       </button>
 
+      <button class="ctrl-btn danger" onclick="triggerError()" id="errorBtn">
+        <span class="ctrl-icon">💥</span>
+        <div class="ctrl-text">
+          Inject Error
+          <span class="ctrl-sub">Injects real error metric → watch error graph spike</span>
+        </div>
+      </button>
       <div class="result-box" id="ctrlResult"></div>
 
       <div class="lt-grid" id="ltGrid" style="display:none">
@@ -653,6 +660,25 @@ async function refresh() {
   await fetchMetrics();
   await fetchDB();
   await fetchLogs();
+}
+
+async function triggerError() {
+  const btn = document.getElementById("errorBtn");
+  btn.disabled = true;
+  showResult("// Injecting error metric into CloudWatch...", "");
+  try {
+    const r = await fetch(BASE + "/api/trigger-error", { method: "POST" });
+    const data = await r.json();
+    if (data.status === "rate_limited") {
+      showResult("// Rate limited: " + data.message, "err");
+    } else {
+      showResult("// Error injected!\n// Watch error graph update in 1-2 minutes", "ok");
+      addLog(new Date().toLocaleTimeString("en",{hour12:false}), "💥 ERROR INJECTED — watch error rate graph", "err");
+    }
+  } catch(e) {
+    showResult("// Error: " + e.message, "err");
+  }
+  btn.disabled = false;
 }
 
 initCharts();
