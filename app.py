@@ -10,6 +10,24 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
+# Rate limiting store
+rate_limits = {}
+
+def get_client_ip():
+    return request.environ.get('HTTP_X_FORWARDED_FOR', 'unknown').split(',')[0].strip()
+
+def is_rate_limited(action, seconds=60):
+    ip = get_client_ip()
+    key = f'{ip}:{action}'
+    now = time.time()
+    if key in rate_limits and now - rate_limits[key] < seconds:
+        remaining = int(seconds - (now - rate_limits[key]))
+        return True, remaining
+    rate_limits[key] = now
+    return False, 0
+
+
+
 REGION = 'us-east-1'
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'prod')
 LOG_GROUP = f'/aws/lambda/multi-env-api-{ENVIRONMENT}'
@@ -226,31 +244,6 @@ def trigger_error():
             MetricData=[{'MetricName': 'Errors', 'Dimensions': [{'Name': 'FunctionName', 'Value': FUNCTION_NAME}], 'Value': 1, 'Unit': 'Count'}]
         )
         return jsonify({'status': 'error_injected', 'message': 'Error metric injected', 'note': 'Watch error graph update in 1-2 minutes'}), 200
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
-@app.route('/api/trigger-error', methods=['POST'])
-def trigger_error():
-    limited, remaining = is_rate_limited('trigger-error', 60)
-    if limited:
-        return jsonify({'status': 'rate_limited', 'message': f'Wait {remaining}s'}), 429
-    try:
-        cw = get_cw()
-        cw.put_metric_data(
-            Namespace='AWS/Lambda',
-            MetricData=[{
-                'MetricName': 'Errors',
-                'Dimensions': [{'Name': 'FunctionName', 'Value': FUNCTION_NAME}],
-                'Value': 1,
-                'Unit': 'Count'
-            }]
-        )
-        return jsonify({
-            'status': 'error_injected',
-            'message': 'Error metric injected into CloudWatch',
-            'note': 'Watch error graph update in 1-2 minutes'
-        }), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 

@@ -57,6 +57,7 @@ resource "aws_iam_role_policy" "lambda_permissions" {
         Action = [
           "cloudwatch:GetMetricStatistics",
           "cloudwatch:ListMetrics",
+          "cloudwatch:PutMetricData",
           "logs:GetLogEvents",
           "logs:DescribeLogStreams",
           "logs:DescribeLogGroups",
