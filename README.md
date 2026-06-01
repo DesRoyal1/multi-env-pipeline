@@ -200,13 +200,3 @@ Unit tests validate logic not infrastructure. Mocking makes tests fast, free, an
 
 **Why rate limit public buttons?**
 The dashboard URL appears on a public resume. Rate limiting prevents abuse while keeping the demo interactive and safe.
-
----
-
-## Resume Bullets
-
-- Architected serverless REST API using AWS Lambda and API Gateway across dev, staging, and production environments — achieving zero infrastructure cost through serverless design
-- Provisioned all AWS infrastructure as code using Terraform workspaces enabling repeatable isolated environment deployments from a single configuration
-- Built multi-stage CI/CD pipeline with GitHub Actions featuring automated pytest, Terraform deployments, and approval-gated production releases
-- Implemented automated incident response using CloudWatch alarms and Lambda self-healing achieving automatic recovery without human intervention
-- Built real-time operations dashboard pulling live metrics from CloudWatch, DynamoDB, and API Gateway — demonstrating end-to-end system observability
